@@ -1,20 +1,50 @@
 {
-  "name": "dex-bot",
+  "name": "dex-trading-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "ts-node": "ts-node",
-    "start": "ts-node src/index.ts"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "premigrate": "yarn run build",
+    "migrate": "node ./dist/migrate",
+    "prestart": "yarn run rebuild",
+    "start": "node -r source-map-support/register -r dotenv/config .",
+    "clean": "clear dist *.tsbuildinfo .eslintcache",
+    "rebuild": "yarn run clean && yarn run build",
+    "predev": "npm run build",
+    "dev": "clear && nodemon -r source-map-support/register -r dotenv/config ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "ts-node": "^10.9.1",
+    "@types/node": "^20.12.2",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "nodemon": "^3.1.0",
+    "source-map-support": "^0.5.21",
     "typescript": "^4.9.4"
   },
+  "files": [
+    "README.md",
+    "dist",
+    "src",
+    "!*/__tests__"
+  ],
   "dependencies": {
-    "ethers": "^5.7.2"
+    "@uniswap/sdk-core": "^4.2.0",
+    "@uniswap/v3-sdk": "^3.11.0",
+    "ethers": "^5.7.2",
+    "jsbi": "^4.3.0",
+    "node-cron": "^3.0.3"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts",
+    "exec": "npm start"
   }
 }
