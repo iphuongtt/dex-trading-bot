@@ -14,11 +14,11 @@ import { toReadableAmount, fromReadableAmount } from '../libs/conversion'
 
 //FRAME/WETH ~ BASE/QUOTE
 export async function quote(): Promise<string> {
-//   const quoterContract = new ethers.Contract(
-//     QUOTER_CONTRACT_ADDRESS_BASE,
-//     Quoter.abi,
-//     getProvider()
-//   )
+  const quoterContract = new ethers.Contract(
+    QUOTER_CONTRACT_ADDRESS_BASE,
+    Quoter.abi,
+    getProvider()
+  )
   const poolConstants = await getPoolConstants()
 
   const currentTick = 0;
@@ -26,26 +26,27 @@ export async function quote(): Promise<string> {
 
   const sqrtRatioX96 = TickMath.getSqrtRatioAtTick(currentTick)
   const ratioX192 = JSBI.multiply(sqrtRatioX96, sqrtRatioX96)
-  const baseAmount = JSBI.BigInt(inputAmount * (10 ** CurrentConfig.tokens.base.decimals))
+  const baseAmount = JSBI.BigInt(inputAmount * (10 ** CurrentConfig.tokens.in.decimals))
   const shift = JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(192))
   const quoteAmount = FullMath.mulDivRoundingUp(ratioX192, baseAmount, shift)
 
-  console.log(quoteAmount.toString() / 10 ** CurrentConfig.tokens.quote.decimals)
+//   console.log(quoteAmount.toString() / 10 ** CurrentConfig.tokens.out.decimals)
 
   console.log({poolConstants})
 
-//   const quotedAmountOut = await quoterContract.callStatic.quoteExactInputSingle(
-//     poolConstants.token0,
-//     poolConstants.token1,
-//     poolConstants.fee,
-//     fromReadableAmount(
-//       CurrentConfig.tokens.amountIn,
-//       CurrentConfig.tokens.in.decimals
-//     ).toString(),
-//     0
-//   )
-    return '';
-//   return toReadableAmount(quotedAmountOut, CurrentConfig.tokens.out.decimals)
+  const quotedAmountOut = await quoterContract.callStatic.quoteExactInputSingle(
+    poolConstants.token0,
+    poolConstants.token1,
+    poolConstants.fee,
+    fromReadableAmount(
+      CurrentConfig.tokens.amountIn,
+      CurrentConfig.tokens.in.decimals
+    ).toString(),
+    0
+  )
+    const result = toReadableAmount(quotedAmountOut, CurrentConfig.tokens.out.decimals);
+    console.log({result})
+  return result
 }
 
 async function getPoolConstants(): Promise<{
@@ -56,8 +57,8 @@ async function getPoolConstants(): Promise<{
 }> {
   const currentPoolAddress = computePoolAddress({
     factoryAddress: POOL_FACTORY_CONTRACT_ADDRESS_BASE,
-    tokenA: CurrentConfig.tokens.base,
-    tokenB: CurrentConfig.tokens.quote,
+    tokenA: CurrentConfig.tokens.in,
+    tokenB: CurrentConfig.tokens.out,
     fee: CurrentConfig.tokens.poolFee,
   })
 

@@ -27,8 +27,8 @@ export async function quotePair() {
 
     console.log(walletAddress + ':', walletBalance.toBigInt())
 
-    const tokenAAddress = '0x4200000000000000000000000000000000000006' // WETH
-    const tokenBAddress = '0x91f45aa2bde7393e0af1cc674ffe75d746b93567' // FRAME
+    const tokenAAddress = '0x91f45aa2bde7393e0af1cc674ffe75d746b93567' // WETH
+    const tokenBAddress = '0x4200000000000000000000000000000000000006' // FRAME
 
     const txInputs = [
         tokenAAddress,

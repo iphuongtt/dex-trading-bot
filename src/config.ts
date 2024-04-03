@@ -10,9 +10,9 @@ export interface ExampleConfig {
     base: string
   }
   tokens: {
-    base: Token
-    baseAmount: number
-    quote: Token
+    in: Token
+    amountIn: number
+    out: Token
     poolFee: number
   }
 }
@@ -26,9 +26,9 @@ export const CurrentConfig: ExampleConfig = {
     base: process.env.BASE_URL || ''
   },
   tokens: {
-    base: FRAME_TOKEN,
-    baseAmount: 1000,
-    quote: WETH_TOKEN_BASE,
+    in: FRAME_TOKEN,
+    amountIn: 1000,
+    out: WETH_TOKEN_BASE,
     poolFee: FeeAmount.MEDIUM,
   },
 }
