@@ -1,16 +1,27 @@
-import { BigNumber, ethers } from 'ethers'
+import JSBI from 'jsbi'
 
-const READABLE_FORM_LEN = 4
-
-export function fromReadableAmount(
-  amount: number,
-  decimals: number
-): BigNumber {
-  return ethers.utils.parseUnits(amount.toString(), decimals)
+export function fromReadableAmount(amount: number, decimals: number): JSBI {
+  const extraDigits = Math.pow(10, countDecimals(amount))
+  const adjustedAmount = amount * extraDigits
+  return JSBI.divide(
+    JSBI.multiply(
+      JSBI.BigInt(adjustedAmount),
+      JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals))
+    ),
+    JSBI.BigInt(extraDigits)
+  )
 }
 
 export function toReadableAmount(rawAmount: number, decimals: number): string {
-  return ethers.utils
-    .formatUnits(rawAmount, decimals)
-    .slice(0, READABLE_FORM_LEN)
+  return JSBI.divide(
+    JSBI.BigInt(rawAmount),
+    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals))
+  ).toString()
+}
+
+function countDecimals(x: number) {
+  if (Math.floor(x) === x) {
+    return 0
+  }
+  return x.toString().split('.')[1].length || 0
 }

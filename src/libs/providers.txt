@@ -1,0 +1,66 @@
+import { ethers, providers, BigNumber, Wallet } from 'ethers'
+import { CurrentConfig } from '../config'
+
+export enum TransactionState {
+  Failed = 'Failed',
+  New = 'New',
+  Rejected = 'Rejected',
+  Sending = 'Sending',
+  Sent = 'Sent',
+}
+
+// Provider Functions
+
+export function getProvider(): providers.Provider {
+  return new ethers.providers.JsonRpcProvider(CurrentConfig.rpc.base)
+}
+
+export function createWallet(privateKey: string, provider: providers.Provider): ethers.Wallet {  
+  return new ethers.Wallet(privateKey, provider)
+}
+
+async function sendTransactionViaWallet(
+  wallet: Wallet,
+  transaction: ethers.providers.TransactionRequest
+): Promise<TransactionState> {
+  if (transaction.value) {
+    transaction.value = BigNumber.from(transaction.value)
+  }
+  const txRes = await wallet.sendTransaction(transaction)
+
+  let receipt = null
+  const provider = getProvider()
+  if (!provider) {
+    return TransactionState.Failed
+  }
+
+  while (receipt === null) {
+    try {
+      receipt = await provider.getTransactionReceipt(txRes.hash)
+
+      if (receipt === null) {
+        continue
+      }
+    } catch (e) {
+      console.log(`Receipt error:`, e)
+      break
+    }
+  }
+
+  // Transaction was successful if status === 1
+  if (receipt) {
+    return TransactionState.Sent
+  } else {
+    return TransactionState.Failed
+  }
+}
+
+export async function sendTransaction(
+  wallet: Wallet,
+  transaction: ethers.providers.TransactionRequest
+): Promise<TransactionState> {
+  if (transaction.value) {
+    transaction.value = BigNumber.from(transaction.value)
+  }
+  return sendTransactionViaWallet(wallet, transaction)
+}
