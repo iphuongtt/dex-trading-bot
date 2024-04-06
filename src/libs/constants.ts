@@ -35,6 +35,7 @@ export const BASESCAN_API_URL = 'https://api.basescan.org/api'
 export const MAX_FEE_PER_GAS = 100000000000
 export const MAX_PRIORITY_FEE_PER_GAS = 100000000000
 export const TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER = 10000
+export const DEFAULT_GAS_LIMIT = 210000
 
 export const ERC20_ABI = [
   // Read-Only Functions
@@ -80,3 +81,32 @@ export const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 export const ARBITRUM_WETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
 export const OPTIMISM_WETH_ADDRESS = '0x4200000000000000000000000000000000000006'
 export const BASE_WETH_ADDRESS = '0x4200000000000000000000000000000000000006'
+export const MAX_UINT = '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+export const PERMIT2_APPROVE_ABI = [{
+  "inputs": [
+    {
+      "internalType": "address",
+      "name": "token",
+      "type": "address"
+    },
+    {
+      "internalType": "address",
+      "name": "spender",
+      "type": "address"
+    },
+    {
+      "internalType": "uint160",
+      "name": "amount",
+      "type": "uint160"
+    },
+    {
+      "internalType": "uint48",
+      "name": "expiration",
+      "type": "uint48"
+    }
+  ],
+  "name": "approve",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}]

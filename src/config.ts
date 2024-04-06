@@ -1,6 +1,9 @@
 import { ChainId, Token } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
+import {ContractInterface} from 'ethers'
 import { FRAME_TOKEN, WETH_TOKEN_BASE } from './libs/constants'
+import FrameABI from './tokenABI/base/frame.json'
+import WETHABI from './tokenABI/base/weth.json'
 
 export enum Environment {
   LOCAL,
@@ -21,9 +24,11 @@ export interface ExampleConfig {
   }
   tokens: {
     in: Token
+    tokenInABI: ContractInterface
     amountIn: number
     targetPrice: number
     out: Token
+    tokenOutABI: ContractInterface
     poolFee: number
   }
   poolAddress: string,
@@ -41,9 +46,11 @@ export const CurrentConfig: ExampleConfig = {
   chainId: ChainId.BASE,
   tokens: {
     in: FRAME_TOKEN,
-    amountIn: 1000,
+    tokenInABI: FrameABI,
+    amountIn: 100000,
     targetPrice: 1209000000,
     out: WETH_TOKEN_BASE,
+    tokenOutABI: WETHABI,
     poolFee: FeeAmount.MEDIUM,
   },
   wallet: {

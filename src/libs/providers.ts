@@ -43,6 +43,10 @@ export function getWalletAddress(): string | null {
     : wallet.address
 }
 
+export function getWallet(): ethers.Wallet {
+  return wallet
+}
+
 export async function sendTransaction(
   transaction: ethers.providers.TransactionRequest
 ): Promise<TransactionState> {
