@@ -62,5 +62,5 @@ export const USDC_TOKEN = new Token(
 
 export const sourceToken = FRAME_TOKEN
 export const destToken = WETH
-export const targetPrice = 100900000
+export const targetPrice = 0.000000001593
 export const amontSourceToken = 100000

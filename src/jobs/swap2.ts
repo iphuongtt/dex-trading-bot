@@ -1,12 +1,19 @@
 import JSBI from "jsbi";
 import { executeSwap, getPrice, getSwap2CurrencyBalance } from "../libs/swap2";
-import { sourceToken, targetPrice, walletAddress } from "../libs/constants2";
+import { destToken, sourceToken, targetPrice, walletAddress } from "../libs/constants2";
+import { convertTargetPrice } from "../libs/conversion";
 
 var cron = require("node-cron");
 
 export class Swap2 {
+  private isDone: boolean = false
   do = async () => {
+    if(this.isDone) {
+      console.log('Done')
+      throw new Error('Done')
+    }
     if (!walletAddress) {
+      console.log('Wallet not found')
       throw new Error('error')
     }
 
@@ -14,17 +21,19 @@ export class Swap2 {
       walletAddress,
       sourceToken
     );
-    console.log({balance})
+    console.log({balance:balance.toString()})
     const bigZero = JSBI.BigInt(0);
-    const bigTarget = JSBI.BigInt(targetPrice);
+    const bigTarget = JSBI.BigInt(convertTargetPrice(targetPrice, destToken.decimals));            
     if (JSBI.GT(balance, bigZero)) {
-      const price = await getPrice();
-      console.log({price})
+      const price = await getPrice();      
       if (price) {
         const date = new Date();
         if (JSBI.GE(price, bigTarget)) {
           //Sell when price >= target price
-          executeSwap()
+          const swapResult = await executeSwap()
+          if (swapResult) {
+            this.isDone = true
+          }          
         }
       }
     } else {
@@ -37,4 +46,3 @@ export class Swap2 {
     cron.schedule("*/1 * * * *", this.do);
   };
 }
-

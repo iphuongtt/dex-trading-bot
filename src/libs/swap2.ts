@@ -1,7 +1,6 @@
 import { ethers, BigNumber } from 'ethers';
 import {
   PERMIT2_ADDRESS,
-  SignatureTransfer,
   AllowanceTransfer,
   AllowanceProvider
 } from '@uniswap/permit2-sdk';
@@ -106,7 +105,7 @@ async function getSwapRoute(
   return route;
 }
 
-export async function executeSwap() {
+export async function executeSwap(): Promise<boolean> {
   if (!walletAddress) {
     throw new Error('not found wallet address')
   }
@@ -243,12 +242,27 @@ export async function executeSwap() {
 
   console.log({txArguments})
   // send out swap transaction
-  const transaction = await ethersSigner.sendTransaction(txArguments);
-  console.log('swap transaction', {
-    hash: transaction.hash,
-    confirmations: transaction.confirmations,
-    gasPrice: transaction.gasPrice
-  });
+  const swapTx = await ethersSigner.sendTransaction(txArguments);
+  console.log('Swap tx hash:', swapTx.hash);
+  // wait for approve transaction confirmation
+  const receipt = await swapTx.wait(6);
+  console.log({receipt})
+  if (receipt.status === 1) {
+    console.log('Swap transaction confirmed');
+    console.log('swap transaction', {
+      transactionHash: receipt.transactionHash,
+      blockHash: receipt.blockHash,
+      confirmations: receipt.confirmations,
+      cumulativeGasUsed: receipt.cumulativeGasUsed.toHexString(),
+      effectiveGasPrice: receipt.effectiveGasPrice.toHexString(),
+      gasUsed: receipt.gasUsed.toString(),
+      logs: JSON.stringify(receipt.logs)
+    });
+    return true
+  } else {
+    console.log('transction error');
+    return false    
+  }
 }
 
 
