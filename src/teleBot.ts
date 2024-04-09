@@ -15,7 +15,7 @@ expressApp.use(express.json());
 
 export const bot = new Telegraf(BOT_TOKEN);
 expressApp.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname + '/index.html'));
+    res.send('Hello')
 });
 
 bot.command('start', ctx => {
