@@ -1,6 +1,4 @@
 import express from 'express'
-import axios from 'axios'
-import path from "path"
 import { Telegraf } from 'telegraf'
 const expressApp = express()
 
@@ -20,22 +18,13 @@ expressApp.get("/", (req, res) => {
 
 bot.command('start', ctx => {
     console.log(ctx.from)
-    bot.telegram.sendMessage(ctx.chat.id, 'Hello there! Welcome to the Code Capsules telegram bot.\nI respond to /ethereum. Please try it', {
+    bot.telegram.sendMessage(ctx.chat.id, 'Hello there! Welcome to the Mybestcrypto telegram bot.\nI respond to /ethereum. Please try it', {
     })
 })
 bot.command('ethereum', ctx => {
     var rate;
     console.log(ctx.from)
     bot.telegram.sendMessage(ctx.chat.id, "Hello holder", {})
-        //         })
-    // axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`)
-    //     .then(response => {
-    //         console.log(response.data)
-    //         rate = response.data.ethereum
-    //         const message = `Hello, today the ethereum price is ${rate.usd}USD`
-    //         bot.telegram.sendMessage(ctx.chat.id, message, {
-    //         })
-    //     })
 })
 
 
