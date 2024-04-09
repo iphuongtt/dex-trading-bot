@@ -26,7 +26,7 @@ bot.command('start', ctx => {
 bot.command('ethereum', ctx => {
     var rate;
     console.log(ctx.from)
-    bot.telegram.sendMessage(ctx.chat.id, "Hello holder", {
+    bot.telegram.sendMessage(ctx.chat.id, "Hello holder", {})
         //         })
     // axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`)
     //     .then(response => {
