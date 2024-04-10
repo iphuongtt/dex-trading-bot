@@ -1,14 +1,18 @@
+import { ChainId } from '@uniswap/sdk-core';
 import express from 'express'
-import { Composer, Scenes, session, Telegraf } from 'telegraf';
+import { Composer, Markup, Scenes, session, Telegraf, Format } from 'telegraf';
 const expressApp = express()
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const WEBHOOK_DOMAIN = process.env.WEBHOOK_DOMAIN
 const WEBHOOK_PORT = process.env.WEBHOOK_PORT
 const ENV = process.env.ENV || 'local'
-if (!BOT_TOKEN || !WEBHOOK_DOMAIN || !WEBHOOK_PORT) {
+if (!BOT_TOKEN) {
     throw new Error('aaa')
 }
+// if (!BOT_TOKEN || !WEBHOOK_DOMAIN || !WEBHOOK_PORT) {
+//     throw new Error('aaa')
+// }
 expressApp.use(express.static('static'))
 expressApp.use(express.json());
 
@@ -20,19 +24,52 @@ const bot = new Telegraf<Scenes.WizardContext>(BOT_TOKEN);
 // and attach any methods you need
 const stepHandler = new Composer<Scenes.WizardContext>();
 
+const keyboardNetwork = Markup.keyboard([
+	[
+    Markup.button.callback('Base', 'something')
+	]
+]);
+
+const removeKeyboard = Markup.removeKeyboard();
+
+
+const message1 = Format.link('test', 'https://google.com')
+
+
+
+// bot.command('test', async (ctx) => {
+//   ctx.reply(message1);
+// })
+// bot.command('test1', async (ctx) => {
+//   ctx.reply('test1', keyboardLang);
+// })
+
+// bot.command('test2', async (ctx) => {
+//   ctx.reply('test2', removeKeyboard);
+// })
+
 stepHandler.command("next", async (ctx) => {
   await ctx.reply("Step 2. Via command");
   return ctx.wizard.next();
 });
 
+bot.action('something', async (ctx) => {
+  console.log('choseBase')
+  await ctx.reply("choseBase");
+})
+
+
+
+
 const scene = new Scenes.WizardScene<Scenes.WizardContext>(
   "addTrade",
   async (ctx) => {
-    await ctx.reply("Vui lòng chọn mạng");
+    await ctx.reply("Vui lòng chọn mạng", keyboardNetwork);
     return ctx.wizard.next();
   },
-//   stepHandler,
+  // stepHandler,
   async (ctx) => {
+    
     await ctx.reply("Step 2");
     return ctx.wizard.next();
   },
@@ -41,6 +78,8 @@ const scene = new Scenes.WizardScene<Scenes.WizardContext>(
     return await ctx.scene.leave();
   }
 );
+
+
 
 // const contactDataWizard = new Scenes.WizardScene(
 //     'Test', // first argument is Scene_ID, same as for BaseScene
@@ -79,15 +118,5 @@ bot.use(stage.middleware());
 bot.command('addTrade', ctx => ctx.scene.enter('addTrade'));
 
 export const startBot = () => {
-    console.log({
-        domain: WEBHOOK_DOMAIN,
-        port: parseInt(WEBHOOK_PORT)
-    })
-    ENV === 'local' ? bot.launch() :
-        bot.launch({
-            webhook: {
-                domain: WEBHOOK_DOMAIN,
-                port: parseInt(WEBHOOK_PORT)
-            },
-        });    
+  bot.launch()
 }
