@@ -59,3 +59,9 @@ export const CurrentConfig: ExampleConfig = {
   },
   poolAddress: '0x64b74c66b9BA60ca668b781289767AE7298F37Ae' //https://info.uniswap.org/#/base/pools/0x64b74c66b9ba60ca668b781289767ae7298f37ae
 }
+
+export const firestore = {
+  projectId: process.env.FIREBASE_PROJECT_ID || '',
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+  privateKey: process.env.FIREBASE_PRIVATE_KEY || '',    
+}

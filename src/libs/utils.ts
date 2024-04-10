@@ -20,3 +20,13 @@ export function displayTrade(trade: Trade<Token, Token, TradeType>): string {
     trade.inputAmount.currency.symbol
   } for ${trade.outputAmount.toExact()} ${trade.outputAmount.currency.symbol}`
 }
+
+export const removeUndefined = (obj: { [key: string]: any }) => {
+  const newObj: { [key: string]: any } = {};
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] !== undefined) {
+      newObj[key] = obj[key];
+    }
+  });
+  return newObj;
+};
