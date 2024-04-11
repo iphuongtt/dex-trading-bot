@@ -1,6 +1,7 @@
 import { ChainId } from '@uniswap/sdk-core';
 import express from 'express'
 import { Composer, Markup, Scenes, session, Telegraf, Format } from 'telegraf';
+import { addTradeSchema, isValid } from './schemas'
 const expressApp = express()
 
 const BOT_TOKEN = process.env.BOT_TOKEN
@@ -25,9 +26,9 @@ const bot = new Telegraf<Scenes.WizardContext>(BOT_TOKEN);
 const stepHandler = new Composer<Scenes.WizardContext>();
 
 const keyboardNetwork = Markup.keyboard([
-	[
-    Markup.button.callback('Base', 'something')
-	]
+    [
+        Markup.button.callback('Base', 'something')
+    ]
 ]);
 
 const removeKeyboard = Markup.removeKeyboard();
@@ -49,34 +50,45 @@ const message1 = Format.link('test', 'https://google.com')
 // })
 
 stepHandler.command("next", async (ctx) => {
-  await ctx.reply("Step 2. Via command");
-  return ctx.wizard.next();
+    await ctx.reply("Step 2. Via command");
+    return ctx.wizard.next();
 });
 
 bot.action('something', async (ctx) => {
-  console.log('choseBase')
-  await ctx.reply("choseBase");
+    console.log('choseBase')
+    await ctx.reply("choseBase");
 })
 
 
 
 
 const scene = new Scenes.WizardScene<Scenes.WizardContext>(
-  "addTrade",
-  async (ctx) => {
-    await ctx.reply("Vui lòng chọn mạng", keyboardNetwork);
-    return ctx.wizard.next();
-  },
-  // stepHandler,
-  async (ctx) => {
-    
-    await ctx.reply("Step 2");
-    return ctx.wizard.next();
-  },
-  async (ctx) => {
-    await ctx.reply("Done");
-    return await ctx.scene.leave();
-  }
+    "addTrade",
+    async (ctx) => {
+        await ctx.reply("Vui lòng nhập dữ liệu giao dịch");
+        return ctx.wizard.next();
+    },
+    async (ctx) => {
+        if (ctx.message && 'text' in ctx.message) {
+            // console.log(ctx.message.text)
+            const tradeData = ctx.message.text
+            console.log(isValid(tradeData))
+            if (isValid(tradeData)) {
+                await ctx.reply("Done");
+                return ctx.scene.leave()
+            } else {
+                await ctx.reply("Lỗi dữ liệu");
+                return ctx.wizard.back()
+            }
+        } else {
+            ctx.wizard.back()
+        }
+
+    },
+    async (ctx) => {
+        await ctx.reply("Done");
+        return await ctx.scene.leave();
+    }
 );
 
 
@@ -118,5 +130,5 @@ bot.use(stage.middleware());
 bot.command('addTrade', ctx => ctx.scene.enter('addTrade'));
 
 export const startBot = () => {
-  bot.launch()
+    bot.launch()
 }

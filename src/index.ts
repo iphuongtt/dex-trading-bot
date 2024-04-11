@@ -5,3 +5,7 @@
 import { startBot } from "./teleBot2";
 
 startBot()
+
+// import { start } from './testSchema'
+
+// start()
