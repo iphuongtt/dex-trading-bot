@@ -40,11 +40,11 @@ var p = {
     target_price: 0.00000000000099
 };
 
-export const isValid = (data: Object): boolean => {
+export const isValidAddTrade = (data: Object): boolean => {
     v.addSchema(chainSchema, '/chainSchema');
     v.addSchema(tradeTypeSchema, '/tradeTypeSchema');
     v.addSchema(tokenSchema, '/tokenSchema');
-    const res = v.validate(p, addTradeSchema)
+    const res = v.validate(data, addTradeSchema)
     if (!res.valid) {
         throw new Error('data invalid')
     } else {

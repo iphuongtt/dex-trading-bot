@@ -1,7 +1,7 @@
 import { ChainId } from '@uniswap/sdk-core';
 import express from 'express'
 import { Composer, Markup, Scenes, session, Telegraf, Format } from 'telegraf';
-import { addTradeSchema, isValid } from './schemas'
+import { addTradeSchema, isValidAddTrade } from './schemas'
 const expressApp = express()
 
 const BOT_TOKEN = process.env.BOT_TOKEN
@@ -72,8 +72,9 @@ const scene = new Scenes.WizardScene<Scenes.WizardContext>(
         if (ctx.message && 'text' in ctx.message) {
             // console.log(ctx.message.text)
             const tradeData = ctx.message.text
-            console.log(isValid(tradeData))
-            if (isValid(tradeData)) {
+            console.log({tradeData})
+            console.log(isValidAddTrade(tradeData))
+            if (isValidAddTrade(tradeData)) {
                 await ctx.reply("Done");
                 return ctx.scene.leave()
             } else {
