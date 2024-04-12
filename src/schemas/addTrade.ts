@@ -20,34 +20,40 @@ export const addTradeSchema: Schema = {
     "required": ["chain", "type", "wallet", "token_in", "token_out", "amount_in", "target_price"]
 };
 
-var p = {
-    chain: "zora",
-    type: "sell",
-    wallet: "My wallet",
+var template = {
+    chain: "base (hiện tại chỉ hỗ trợ mạng chain Base)",
+    type: "sell | buy",
+    wallet: "Địa chỉ ví",
     token_in: {
-        address: "token_in",
+        address: "Address",
         decimals: 18,
-        symbol: "symbol",
-        name: "name",
+        symbol: "Mã Token",
+        name: "Tên token",
     },
     token_out: {
-        address: "token_out",
+        address: "Address",
         decimals: 18,
-        symbol: "symbol",
-        name: "name",
+        symbol: "Mã Token",
+        name: "Tên Token",
     },
     amount_in: 124,
     target_price: 0.00000000000099
 };
 
 export const isValidAddTrade = (data: Object): boolean => {
+    console.log({ data })
     v.addSchema(chainSchema, '/chainSchema');
     v.addSchema(tradeTypeSchema, '/tradeTypeSchema');
     v.addSchema(tokenSchema, '/tokenSchema');
     const res = v.validate(data, addTradeSchema)
     if (!res.valid) {
-        throw new Error('data invalid')
+        return false
     } else {
         return true
     }
+}
+
+
+export const getAddTradeTemplate = (): string => {
+    return JSON.stringify(template, undefined, 2);
 }
