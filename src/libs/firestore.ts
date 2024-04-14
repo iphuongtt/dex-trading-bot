@@ -11,7 +11,6 @@ import {
 import { User } from "../models";
 import { firestore as fireStoreConfigs } from "../config";
 
-console.log({fireStoreConfigs})
 admin.initializeApp({credential: admin.credential.cert(fireStoreConfigs)});
 
 const db = admin.firestore();
@@ -43,6 +42,7 @@ export interface Order {
 
 export type Collection =
   | "menus"
+  | "wallets"
   | "users"
   | "transactions"
   | "system"
