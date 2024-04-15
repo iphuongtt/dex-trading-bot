@@ -3,7 +3,7 @@ import { MyContext } from "./context";
 import { isValidAddTrade } from "../schemas";
 
 export const addTradeWizard = new Scenes.WizardScene<MyContext>(
-  "addTrade",
+  "addTradeWizard",
   async (ctx) => {
     await ctx.reply("Vui lòng nhập dữ liệu giao dịch");
     return ctx.wizard.next();
@@ -29,6 +29,7 @@ export const addTradeWizard = new Scenes.WizardScene<MyContext>(
     }
   },
   async (ctx) => {
+    console.log({ctx})
     await ctx.reply("Done");
     return await ctx.scene.leave();
   }

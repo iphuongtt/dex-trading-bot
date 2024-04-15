@@ -76,6 +76,7 @@ export const getTemplateAddTrade = async (ctx: Context) => {
 }
 
 export const getTradeMenus = async (ctx: Context) => {
+  await ctx.deleteMessage()
   return await ctx.reply('🦄 Trade menu', Markup.inlineKeyboard([
     [Markup.button.callback('💼 My trades', 'get_my_trades'), Markup.button.callback('➕ Get template', 'get_template')],
     [Markup.button.callback('➕ Add trade', 'add_trade'), Markup.button.callback('✏️ Edit trade', 'edit_trade')],

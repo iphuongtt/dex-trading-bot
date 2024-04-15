@@ -21,20 +21,20 @@ export const addTradeSchema: Schema = {
 };
 
 var template = {
-    chain: "base (hiện tại chỉ hỗ trợ mạng chain Base)",
+    chain: "base (only support Base chain)",
     type: "sell | buy",
-    wallet: "Địa chỉ ví",
+    wallet: "Wallet address",
     token_in: {
-        address: "Address",
+        address: "Token address",
         decimals: 18,
-        symbol: "Mã Token",
-        name: "Tên token",
+        symbol: "Token symbol",
+        name: "Token name",
     },
     token_out: {
-        address: "Address",
+        address: "Token address",
         decimals: 18,
-        symbol: "Mã Token",
-        name: "Tên Token",
+        symbol: "Token symbol",
+        name: "Token name",
     },
     amount_in: 124,
     target_price: 0.00000000000099
