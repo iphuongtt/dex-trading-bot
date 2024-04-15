@@ -5,5 +5,6 @@ export interface Wallet {
     user_id: string;
     telegram_id: number;
     wallet: string;
+    name?: string;
     create_at: FieldValue;
 }

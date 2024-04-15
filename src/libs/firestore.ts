@@ -11,7 +11,7 @@ import {
 import { User } from "../models";
 import { firestore as fireStoreConfigs } from "../config";
 
-admin.initializeApp({credential: admin.credential.cert(fireStoreConfigs)});
+admin.initializeApp({ credential: admin.credential.cert(fireStoreConfigs) });
 
 const db = admin.firestore();
 export default db;
@@ -19,16 +19,16 @@ export default db;
 export interface Filter {
   field: string;
   operation:
-    | "<"
-    | "<="
-    | "=="
-    | "!="
-    | ">="
-    | ">"
-    | "array-contains"
-    | "in"
-    | "array-contains-any"
-    | "not-in";
+  | "<"
+  | "<="
+  | "=="
+  | "!="
+  | ">="
+  | ">"
+  | "array-contains"
+  | "in"
+  | "array-contains-any"
+  | "not-in";
   value: any;
 }
 
@@ -43,35 +43,8 @@ export interface Order {
 export type Collection =
   | "menus"
   | "wallets"
+  | "trades"
   | "users"
-  | "transactions"
-  | "system"
-  | "list"
-  | "pairs"
-  | "assets"
-  | "balances"
-  | "categories"
-  | "prices"
-  | "profiles"
-  | "publics"
-  | "mmbalances"
-  | "roles"
-  | "system"
-  | "whale-bitcoin"
-  | "money-manager"
-  | "coin-data"
-  | `money-manager/${string}/transactions`
-  | `money-manager/${string}/categories`
-  | `money-manager/${string}/monthly_reports`
-  | `money-manager/${string}/yearly_reports`
-  | `tradings/${string}/pairs`
-  | `tradings/${string}/journals`
-  | `tradings/${string}/strategies`
-  | `tradings/${string}/daily_reports`
-  | "tradings"
-  | "trading-results"
-  | "public-trades"
-  | "logs/indexing"
   | "logs"
   | "logs/indexing/histories"
   | "dashboards";
@@ -275,13 +248,13 @@ export async function getDocAndRef<T>(
   filters: Filter[] | null = null
 ): Promise<
   | {
-      data: T;
-      ref: FirebaseFirestore.DocumentReference<T>;
-    }
+    data: T;
+    ref: FirebaseFirestore.DocumentReference<T>;
+  }
   | {
-      data: null;
-      ref: null;
-    }
+    data: null;
+    ref: null;
+  }
 > {
   if (docId) {
     return db
@@ -653,8 +626,8 @@ export async function runTransaction(
         transaction.update(docRef, updateFn(doc.data()));
       });
     })
-    .then(function () {})
-    .catch(function (error) {});
+    .then(function () { })
+    .catch(function (error) { });
 }
 
 /**
