@@ -8,8 +8,8 @@ export const chainSchema: Schema = {
   "enum": ["base", "zora"]
 };
 
-export const tradeTypeSchema: Schema = {
-  "id": "/tradeTypeSchema",
+export const orderTypeSchema: Schema = {
+  "id": "/orderTypeSchema",
   "type": "string",
   "enum": ["buy", "sell"]
 };
@@ -26,12 +26,12 @@ export const tokenSchema: Schema = {
   "required": ["address", "decimals", "symbol", "name"]
 }
 
-export const addTradeSchema: Schema = {
-  "id": "/addTradeSchema",
+export const addOrderSchema: Schema = {
+  "id": "/addOrderSchema",
   "type": "object",
   "properties": {
     "chain": { "$ref": "/chainSchema" },
-    "type": { "$ref": "/tradeTypeSchema" },
+    "type": { "$ref": "/orderTypeSchema" },
     "wallet": { "type": "string" },
     "token_in": { "$ref": "/tokenSchema" },
     "token_out": { "$ref": "/tokenSchema" },
@@ -64,9 +64,9 @@ var p = {
 
 export const start = () => {
   v.addSchema(chainSchema, '/chainSchema');
-  v.addSchema(tradeTypeSchema, '/tradeTypeSchema');
+  v.addSchema(orderTypeSchema, '/orderTypeSchema');
   v.addSchema(tokenSchema, '/tokenSchema');
-  const res = v.validate(p, addTradeSchema)
+  const res = v.validate(p, addOrderSchema)
   if (!res.valid) {
     console.log(res.errors)
   } else {

@@ -1,3 +1,3 @@
 export * from './context'
-export * from './trades'
+export * from './orders'
 export * from './wallets'

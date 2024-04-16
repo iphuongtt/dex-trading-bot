@@ -6,8 +6,8 @@ export const chainSchema: Schema = {
     "enum": ["base", "zora"]
 };
 
-export const tradeTypeSchema: Schema = {
-    "id": "/tradeTypeSchema",
+export const orderTypeSchema: Schema = {
+    "id": "/orderTypeSchema",
     "type": "string",
     "enum": ["buy", "sell"]
 };

@@ -1,16 +1,16 @@
 import { Validator, Schema } from 'jsonschema'
-import { chainSchema, tokenSchema, tradeTypeSchema } from '../testSchema';
+import { chainSchema, tokenSchema, orderTypeSchema } from '../testSchema';
 
 var v = new Validator();
 
 
 
-export const addTradeSchema: Schema = {
-    "id": "/addTradeSchema",
+export const addOrderSchema: Schema = {
+    "id": "/addOrderSchema",
     "type": "object",
     "properties": {
         "chain": { "$ref": "/chainSchema" },
-        "type": { "$ref": "/tradeTypeSchema" },
+        "type": { "$ref": "/orderTypeSchema" },
         "wallet": { "type": "string" },
         "token_in": { "$ref": "/tokenSchema" },
         "token_out": { "$ref": "/tokenSchema" },
@@ -40,12 +40,12 @@ var template = {
     target_price: 0.00000000000099
 };
 
-export const isValidAddTrade = (data: Object): boolean => {
+export const isValidAddOrder = (data: Object): boolean => {
     console.log({ data })
     v.addSchema(chainSchema, '/chainSchema');
-    v.addSchema(tradeTypeSchema, '/tradeTypeSchema');
+    v.addSchema(orderTypeSchema, '/orderTypeSchema');
     v.addSchema(tokenSchema, '/tokenSchema');
-    const res = v.validate(data, addTradeSchema)
+    const res = v.validate(data, addOrderSchema)
     if (!res.valid) {
         return false
     } else {
@@ -54,6 +54,6 @@ export const isValidAddTrade = (data: Object): boolean => {
 }
 
 
-export const getAddTradeTemplate = (): string => {
+export const getAddOrderTemplate = (): string => {
     return JSON.stringify(template, undefined, 2);
 }

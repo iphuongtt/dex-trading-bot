@@ -43,7 +43,7 @@ export interface Order {
 export type Collection =
   | "menus"
   | "wallets"
-  | "trades"
+  | "orders"
   | "users"
   | "logs"
   | "logs/indexing/histories"

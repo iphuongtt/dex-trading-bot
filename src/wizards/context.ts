@@ -5,6 +5,8 @@ export interface MyWizardSession extends Scenes.WizardSessionData {
     walletName: string;
     idWalletToDelete: string;
     idWalletToEdit: string;
+    idOrderToEdit: string;
+    idOrderToDelete: string;
 }
 export interface MySession extends Scenes.WizardSession<MyWizardSession> {
     mySessionProp: number;

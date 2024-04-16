@@ -2,9 +2,9 @@
 import express from "express";
 import { Composer, Markup, Scenes, session, Telegraf } from "telegraf";
 
-import { MyContext, addTradeWizard, addWalletWizard, deleteWalletWizard, editWalletWizard } from "./wizards";
+import { MyContext, addOrderWizard, addWalletWizard, deleteWalletWizard, editOrderAmountWizard, editOrderPriceWizard, editOrderStatusWizard, editWalletWizard } from "./wizards";
 import { getWalletMenus, listWallets } from "./commands/wallets";
-import { getTemplate, getTemplateAddTrade, getTradeMenus, listTrades } from "./commands";
+import { editOrder, getTemplate, getTemplateAddOrder, getOrderMenus, listOrders } from "./commands";
 import { backToMainMenu, clearHistory, getMenus } from "./commands/utils";
 const expressApp = express();
 
@@ -35,17 +35,20 @@ stepHandler.command("next", async (ctx) => {
   return ctx.wizard.next();
 });
 
-const stage = new Scenes.Stage<MyContext>([addTradeWizard, addWalletWizard, deleteWalletWizard, editWalletWizard]);
+const stage = new Scenes.Stage<MyContext>([addOrderWizard, addWalletWizard, deleteWalletWizard, editWalletWizard, editOrderPriceWizard,
+  editOrderAmountWizard,
+  editOrderStatusWizard]);
 
 bot.use(session());
 // this attaches ctx.scene to the global context
 bot.use(stage.middleware());
 
-bot.command("addtrade", (ctx) => ctx.scene.enter("addTrade"));
+bot.command("addorder", (ctx) => ctx.scene.enter("addOrder"));
 bot.command("addwallet", (ctx) => ctx.scene.enter("addWalletWizard"))
 bot.command("deletewallet", (ctx) => ctx.scene.enter("deleteWalletWizard"))
 bot.command("editwallet", (ctx) => ctx.scene.enter("editWalletWizard"))
 bot.command("start", (ctx) => ctx.reply("👍"));
+bot.command("myorders", async (ctx) => listOrders(ctx, false))
 //Bot commands
 bot.command('menu', getMenus)
 //Bot listeners
@@ -53,28 +56,34 @@ bot.hears("🔍 Wallets", getWalletMenus);
 bot.hears("❌ Del wallet", (ctx) => ctx.scene.enter("deleteWalletWizard"))
 bot.hears("✏️ Edit wallet", (ctx) => ctx.scene.enter("editWalletWizard"))
 bot.hears("🔙 Back to Menu", getMenus)
-bot.hears("🦄 Trades", getTradeMenus)
+bot.hears("🦄 Orders", getOrderMenus)
 bot.hears("🧹 Clear histories", clearHistory)
 //Bot Actions
 bot.action('add_wallet', async (ctx) => ctx.scene.enter('addWalletWizard'))
 bot.action('edit_wallet', async (ctx) => ctx.scene.enter('editWalletWizard'))
 bot.action('delete_wallet', async (ctx) => ctx.scene.enter('deleteWalletWizard'))
-bot.action('add_trade', async (ctx) => ctx.scene.enter('addTradeWizard'))
-bot.action('edit_trade', async (ctx) => ctx.scene.enter('editTradeWizard'))
-bot.action('delete_trade', async (ctx) => ctx.scene.enter('deleteTradeWizard'))
+bot.action('add_order', async (ctx) => ctx.scene.enter('addOrderWizard'))
+bot.action('edit_order', editOrder)
+bot.action('delete_order', async (ctx) => ctx.scene.enter('deleteOrderWizard'))
 bot.action('get_my_wallets', listWallets)
-bot.action('get_my_trades', listTrades)
+bot.action('get_my_orders', async (ctx) => listOrders(ctx, false))
+bot.action('refresh_my_orders', async (ctx) => listOrders(ctx, true))
 bot.action("get_template", getTemplate)
-bot.action("get_template_add_trade", getTemplateAddTrade)
+bot.action("get_template_add_order", getTemplateAddOrder)
 bot.action("show_wallet_menu", getWalletMenus)
-bot.action("show_trade_menu", getTradeMenus)
+bot.action("show_order_menu", getOrderMenus)
 bot.action("clear_history", clearHistory)
 bot.action("back_to_main_menu", backToMainMenu)
+bot.action("back_to_order_menu", getOrderMenus)
+bot.action("change_target_price", async (ctx) => ctx.scene.enter('editOrderPriceWizard'))
+bot.action("change_order_amount", async (ctx) => ctx.scene.enter('editOrderAmountWizard'))
+bot.action("change_order_status", async (ctx) => ctx.scene.enter('editOrderStatusWizard'))
 
 //Bot starting
 const commands = [
   { command: "/start", description: "Start using Mybestcryptos trading bot" },
-  { command: "/menu", description: "Menu" }
+  { command: "/menu", description: "Menu" },
+  { command: "/myorders", description: "Get my orders" }
 ];
 bot.telegram.setMyCommands(commands);
 export const startBot = () => {

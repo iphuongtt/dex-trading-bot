@@ -1,5 +1,5 @@
 import { Validator, Schema } from 'jsonschema'
-import { chainSchema, tokenSchema, tradeTypeSchema } from '../testSchema';
+import { chainSchema, tokenSchema, orderTypeSchema } from '../testSchema';
 
 var v = new Validator();
 
@@ -20,10 +20,10 @@ var template = {
     wallet: "Địa chỉ ví"
 };
 
-export const isValidAddTrade = (data: Object): boolean => {
+export const isValidAddOrder = (data: Object): boolean => {
     console.log({ data })
     v.addSchema(chainSchema, '/chainSchema');
-    v.addSchema(tradeTypeSchema, '/tradeTypeSchema');
+    v.addSchema(orderTypeSchema, '/orderTypeSchema');
     v.addSchema(tokenSchema, '/tokenSchema');
     const res = v.validate(data, addAddWalletSchema)
     if (!res.valid) {
@@ -34,6 +34,6 @@ export const isValidAddTrade = (data: Object): boolean => {
 }
 
 
-export const getAddTradeTemplate = (): string => {
+export const getAddOrderTemplate = (): string => {
     return JSON.stringify(template, undefined, 2);
 }

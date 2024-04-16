@@ -7,7 +7,7 @@ export interface Token {
     name: string;
 }
 
-export interface Trade {
+export interface Order {
     id?: string;
     user_id: string;
     chain: 'base' | 'zora'
@@ -21,4 +21,5 @@ export interface Trade {
     transaction_hash?: string;
     is_filled?: boolean;
     create_at: FieldValue;
+    is_active: boolean;
 }

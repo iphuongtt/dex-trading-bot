@@ -43,7 +43,7 @@ export const listWallets = async (ctx: Context) => {
 };
 
 export const getWalletMenus = async (ctx: Context) => {
-  await ctx.deleteMessage();
+  await ctx.deleteMessage().catch(e => console.log(e));
   return await ctx.reply(
     "Wallet menu",
     Markup.inlineKeyboard([

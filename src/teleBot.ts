@@ -50,9 +50,7 @@ bot.command('start', async ctx => {
     }
 })
 
-bot.command('addTrade', async ctx => {
 
-})
 
 bot.help((ctx) => {
     ctx.reply('Available commands:\n/newarticle - Create a new article');

@@ -16,9 +16,8 @@ export function toReadableAmount(rawAmount: number, decimals: number): string {
 }
 
 export function displayTrade(trade: Trade<Token, Token, TradeType>): string {
-  return `${trade.inputAmount.toExact()} ${
-    trade.inputAmount.currency.symbol
-  } for ${trade.outputAmount.toExact()} ${trade.outputAmount.currency.symbol}`
+  return `${trade.inputAmount.toExact()} ${trade.inputAmount.currency.symbol
+    } for ${trade.outputAmount.toExact()} ${trade.outputAmount.currency.symbol}`
 }
 
 export const removeUndefined = (obj: { [key: string]: any }) => {
@@ -30,3 +29,8 @@ export const removeUndefined = (obj: { [key: string]: any }) => {
   });
   return newObj;
 };
+
+export const isNumeric = (str: any): boolean => {
+  if (typeof str != "string") return false // we only process strings!
+  return !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
