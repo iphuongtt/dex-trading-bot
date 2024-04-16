@@ -24,6 +24,7 @@ expressApp.use(express.json());
 // specify generic type of Telegraf context
 // thus Typescript will know that ctx.scene exists
 const bot = new Telegraf<MyContext>(BOT_TOKEN);
+bot.start((ctx) => ctx.reply('Welcome'))
 
 // you can also pass step handlers as Composer
 // and attach any methods you need
@@ -89,3 +90,5 @@ bot.telegram.setMyCommands(commands);
 export const startBot = () => {
   bot.launch();
 };
+
+
