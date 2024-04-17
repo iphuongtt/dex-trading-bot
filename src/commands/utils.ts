@@ -8,22 +8,29 @@ export const getMenus = async (ctx: Context) => {
         Markup.button.callback("🔍 Wallets", "show_wallet_menu"),
         Markup.button.callback("🦄 Orders", "show_order_menu"),
       ],
-      [Markup.button.callback("🧹 Clear histories", "clear_history")],
+      // [Markup.button.callback("🧹 Clear histories", "clear_history")],
     ])
   );
 };
 
 export const clearHistory = async (ctx: Context) => {
+  console.log(ctx.callbackQuery)
   let i = 0;
-  while (true) {
-    try {
-      if (ctx.message && ctx.message.message_id) {
-        await ctx.deleteMessage(ctx.message.message_id - i++);
-      } else {
+  let currentMessageId = null;
+  if (ctx.message && ctx.message.message_id) {
+    currentMessageId = ctx.message.message_id
+  } else if (ctx.callbackQuery?.message?.message_id) {
+    currentMessageId = ctx.callbackQuery.message.message_id
+  }
+  console.log({ currentMessageId })
+  if (currentMessageId) {
+    while (true) {
+      try {
+        await ctx.deleteMessage(currentMessageId - i++)
+      } catch (e) {
+        console.log(e)
         break;
       }
-    } catch (e) {
-      break;
     }
   }
 };

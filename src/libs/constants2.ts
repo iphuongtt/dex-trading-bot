@@ -2,6 +2,8 @@ import { ethers } from 'ethers';
 import { Token, ChainId } from '@uniswap/sdk-core';
 import { SWAP_ROUTER_02_ADDRESSES } from '@uniswap/smart-order-router';
 import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
+import { chain } from 'lodash';
+import { SupportedChain } from './types';
 
 const wethMap: { [key: number]: string } = {
   [ChainId.MAINNET]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
@@ -10,6 +12,13 @@ const wethMap: { [key: number]: string } = {
   [ChainId.BASE]: '0x4200000000000000000000000000000000000006',
   [ChainId.GOERLI]: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
   [ChainId.SEPOLIA]: '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9',
+}
+
+export const explorerMap: { [key: number]: string } = {
+  [ChainId.MAINNET]: 'https://etherscan.io',
+  [ChainId.OPTIMISM]: 'https://optimistic.etherscan.io',
+  [ChainId.ARBITRUM_ONE]: 'https://arbiscan.io',
+  [ChainId.BASE]: 'https://basescan.org',
 }
 
 export const walletAddress = process.env.WALLET_ADDRESS;
@@ -64,3 +73,29 @@ export const sourceToken = FRAME_TOKEN
 export const destToken = WETH
 export const targetPrice = 0.000000001593
 export const amontSourceToken = 100000
+
+export const getExplorer = (chain: SupportedChain): string => {
+  switch (chain) {
+    case 'base':
+      return explorerMap[ChainId.BASE]
+    default:
+      break;
+  }
+  return ''
+}
+
+
+export const emojs = {
+  yes: '👍',
+  no: '🚫',
+  cancel: '🚫',
+  checked: '✅',
+  pending: '⚡️',
+  add: '➕',
+  edit: '✏️',
+  del: '❌',
+  refresh: '🔄',
+  order: '🦄',
+  target: '🎯',
+  back: '🔙'
+}

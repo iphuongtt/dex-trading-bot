@@ -2,10 +2,13 @@
 import express from "express";
 import { Composer, Markup, Scenes, session, Telegraf } from "telegraf";
 
-import { MyContext, addOrderWizard, addWalletWizard, deleteWalletWizard, editOrderAmountWizard, editOrderPriceWizard, editOrderStatusWizard, editWalletWizard } from "./wizards";
+import { MyContext, addOrderWizard, addWalletWizard, deleteWalletWizard, editOrderAmountWizard, editOrderPriceWizard, editOrderStatusWizard, deleteOrderWizard, editWalletWizard } from "./wizards";
 import { getWalletMenus, listWallets } from "./commands/wallets";
 import { editOrder, getTemplate, getTemplateAddOrder, getOrderMenus, listOrders } from "./commands";
 import { backToMainMenu, clearHistory, getMenus } from "./commands/utils";
+import { create, getServerTimeStamp, isExists } from "./libs/firestore";
+import { User } from "./models";
+import { removeUndefined } from "./libs";
 const expressApp = express();
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -24,7 +27,6 @@ expressApp.use(express.json());
 // specify generic type of Telegraf context
 // thus Typescript will know that ctx.scene exists
 const bot = new Telegraf<MyContext>(BOT_TOKEN);
-bot.start((ctx) => ctx.reply('Welcome'))
 
 // you can also pass step handlers as Composer
 // and attach any methods you need
@@ -38,7 +40,7 @@ stepHandler.command("next", async (ctx) => {
 
 const stage = new Scenes.Stage<MyContext>([addOrderWizard, addWalletWizard, deleteWalletWizard, editWalletWizard, editOrderPriceWizard,
   editOrderAmountWizard,
-  editOrderStatusWizard]);
+  editOrderStatusWizard, deleteOrderWizard]);
 
 bot.use(session());
 // this attaches ctx.scene to the global context
@@ -48,10 +50,36 @@ bot.command("addorder", (ctx) => ctx.scene.enter("addOrder"));
 bot.command("addwallet", (ctx) => ctx.scene.enter("addWalletWizard"))
 bot.command("deletewallet", (ctx) => ctx.scene.enter("deleteWalletWizard"))
 bot.command("editwallet", (ctx) => ctx.scene.enter("editWalletWizard"))
-bot.command("start", (ctx) => ctx.reply("👍"));
-bot.command("myorders", async (ctx) => listOrders(ctx, false))
+bot.command('start', async ctx => {
+  const teleUser = ctx.from
+  //Check user isexist
+  const isExist = await isExists('users', null, [
+    { field: "telegram_id", operation: "==", value: teleUser.id }
+  ]);
+  if (!isExist) {
+    const newUser: User = {
+      telegram_id: teleUser.id,
+      username: teleUser.username,
+      language_code: teleUser.language_code,
+      is_bot: teleUser.is_bot,
+      first_name: teleUser.first_name,
+      last_name: teleUser.last_name,
+      create_at: getServerTimeStamp(),
+      is_admin: false
+    }
+    create('users', null, removeUndefined(newUser)).then((result) => {
+      console.log({ result })
+      bot.telegram.sendMessage(ctx.chat.id, `Hello ${teleUser.first_name}! Welcome to the Mybestcrypto telegram bot.`, {
+      })
+    })
+  } else {
+    bot.telegram.sendMessage(ctx.chat.id, `Hello ${teleUser.first_name}!. Welcome to the Mybestcrypto telegram bot.`, {})
+  }
+})
 //Bot commands
+bot.command("myorders", async (ctx) => listOrders(ctx, false))
 bot.command('menu', getMenus)
+
 //Bot listeners
 bot.hears("🔍 Wallets", getWalletMenus);
 bot.hears("❌ Del wallet", (ctx) => ctx.scene.enter("deleteWalletWizard"))
@@ -79,6 +107,10 @@ bot.action("back_to_order_menu", getOrderMenus)
 bot.action("change_target_price", async (ctx) => ctx.scene.enter('editOrderPriceWizard'))
 bot.action("change_order_amount", async (ctx) => ctx.scene.enter('editOrderAmountWizard'))
 bot.action("change_order_status", async (ctx) => ctx.scene.enter('editOrderStatusWizard'))
+bot.action("leave_wizard", async (ctx) => {
+  console.log('leave_wizard')
+  // return ctx.scene.leave()
+})
 
 //Bot starting
 const commands = [

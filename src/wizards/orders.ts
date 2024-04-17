@@ -1,8 +1,8 @@
-import { Format, Markup, Scenes } from "telegraf";
-import { MyContext } from "./context";
+import { Format, Markup, Scenes, Telegraf } from "telegraf";
+import { MyContext, yesOrNoKeyboardNetwork } from "./context";
 import { isValidAddOrder } from "../schemas";
 import _ from 'lodash'
-import { create, getDoc, getServerTimeStamp, updateDoc } from "../libs/firestore";
+import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../libs/firestore";
 import { Order } from "../models/order";
 import { isNumeric, removeUndefined } from "../libs";
 
@@ -227,3 +227,86 @@ export const editOrderStatusWizard = new Scenes.WizardScene<MyContext>(
     return ctx.scene.leave();
   },
 );
+
+
+export const deleteOrderWizard = new Scenes.WizardScene<MyContext>(
+  'deleteOrderWizard', // first argument is Scene_ID, same as for BaseScene
+  async (ctx) => {
+    await ctx.reply('What is your order id?', Markup.inlineKeyboard([
+      Markup.button.callback("🚫 Cancel", "leave")
+    ]));
+    ctx.scene.session.idOrderToDelete = ''
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text) {
+      const isOrderExist = await isExists('orders', ctx.message.text)
+      if (isOrderExist) {
+        ctx.scene.session.idOrderToDelete = ctx.message.text
+      }
+    } else {
+      console.log('afsfsf');
+      return ctx.wizard.next();
+    }
+    await ctx.reply(Format.fmt`Are you sure to delete the order?`, Markup.inlineKeyboard([
+      Markup.button.callback("👍 Yes", "confirm_delete"),
+      Markup.button.callback("🚫 No", "not_confirm_delete")
+    ]));
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message) {
+      if (ctx.message.text === 'Yes') {
+        await deleteDoc("orders", ctx.scene.session.idOrderToDelete)
+        await ctx.reply(Format.fmt`Order id ${Format.code(ctx.scene.session.idOrderToDelete)} deleted`, Markup.removeKeyboard());
+      } else {
+        await ctx.reply('Cancel', Markup.removeKeyboard())
+      }
+    } else {
+      await ctx.reply('Cancel', Markup.removeKeyboard())
+    }
+    return ctx.scene.leave();
+  },
+);
+
+deleteOrderWizard.action("leave", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    ctx.deleteMessage(ctx.callbackQuery.message?.message_id)
+  }
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})
+
+deleteOrderWizard.action("confirm_delete", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    ctx.deleteMessage(ctx.callbackQuery.message?.message_id)
+  }
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})
+
+deleteOrderWizard.action("not_confirm_delete", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    ctx.deleteMessage(ctx.callbackQuery.message?.message_id)
+  }
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})
+
+
+export const setupOrderWizards = (bot: Telegraf<MyContext>) => {
+  bot.action('add_order', async (ctx) => ctx.scene.enter('addOrderWizard'))
+  bot.action('delete_order', async (ctx) => ctx.scene.enter('deleteOrderWizard'))
+}
