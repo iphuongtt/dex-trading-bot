@@ -1,12 +1,13 @@
 import { Format, Markup, Scenes, Telegraf } from "telegraf";
-import { MyContext, yesOrNoKeyboardNetwork } from "./context";
-import { isValidAddOrder } from "../schemas";
+import { BotContext, cancelBtn, yesOrNoKeyboardNetwork } from "../context";
 import _ from 'lodash'
-import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../libs/firestore";
-import { Order } from "../models/order";
-import { isNumeric, removeUndefined } from "../libs";
+import { isValidAddOrder } from "./schema";
+import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../../libs/firestore";
+import { Order } from "./model";
+import { isNumeric, removeUndefined } from "../../libs";
+import { emojs } from "../../libs/constants2";
 
-export const addOrderWizard = new Scenes.WizardScene<MyContext>(
+export const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
   async (ctx) => {
     await ctx.reply("Please enter the order data");
@@ -61,15 +62,15 @@ export const addOrderWizard = new Scenes.WizardScene<MyContext>(
           }
           return ctx.scene.leave();
         } else {
-          await ctx.reply(Format.fmt`The data is not in the correct JSON format.\nPlease try again or use the command /gettemplate to obtain the template`);
-          return ctx.wizard.back()
+          await ctx.reply(Format.fmt`The data is not in the correct JSON format`);
+          return ctx.scene.leave()
         }
       } catch (error) {
-        await ctx.reply(Format.fmt`The data is not in the correct JSON format.\nPlease try again or use the command /gettemplate to obtain the template`);
-        return ctx.wizard.back()
+        await ctx.reply(Format.fmt`The data is not in the correct JSON format`);
+        return ctx.scene.leave()
       }
     } else {
-      ctx.wizard.back();
+      ctx.scene.leave();
     }
   },
   async (ctx) => {
@@ -79,7 +80,7 @@ export const addOrderWizard = new Scenes.WizardScene<MyContext>(
   }
 );
 
-export const getTemplateWizard = new Scenes.WizardScene<MyContext>(
+export const getTemplateWizard = new Scenes.WizardScene<BotContext>(
   "getTemplateWizard",
   async (ctx) => {
     const keyboards = Markup.inlineKeyboard([
@@ -113,7 +114,7 @@ export const getTemplateWizard = new Scenes.WizardScene<MyContext>(
   }
 );
 
-export const editOrderPriceWizard = new Scenes.WizardScene<MyContext>(
+export const editOrderPriceWizard = new Scenes.WizardScene<BotContext>(
   'editOrderPriceWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await ctx.reply('What is your order id?');
@@ -152,7 +153,7 @@ export const editOrderPriceWizard = new Scenes.WizardScene<MyContext>(
   },
 );
 
-export const editOrderAmountWizard = new Scenes.WizardScene<MyContext>(
+export const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
   'editOrderAmountWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await ctx.reply('What is your order id?');
@@ -190,7 +191,7 @@ export const editOrderAmountWizard = new Scenes.WizardScene<MyContext>(
   },
 );
 
-export const editOrderStatusWizard = new Scenes.WizardScene<MyContext>(
+export const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
   'editOrderStatusWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await ctx.reply('What is your order id?');
@@ -229,12 +230,10 @@ export const editOrderStatusWizard = new Scenes.WizardScene<MyContext>(
 );
 
 
-export const deleteOrderWizard = new Scenes.WizardScene<MyContext>(
+export const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
   'deleteOrderWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your order id?', Markup.inlineKeyboard([
-      Markup.button.callback("🚫 Cancel", "leave")
-    ]));
+    await ctx.reply('What is your order id?', cancelBtn);
     ctx.scene.session.idOrderToDelete = ''
     return ctx.wizard.next();
   },
@@ -249,8 +248,8 @@ export const deleteOrderWizard = new Scenes.WizardScene<MyContext>(
       return ctx.wizard.next();
     }
     await ctx.reply(Format.fmt`Are you sure to delete the order?`, Markup.inlineKeyboard([
-      Markup.button.callback("👍 Yes", "confirm_delete"),
-      Markup.button.callback("🚫 No", "not_confirm_delete")
+      Markup.button.callback(`${emojs.yes} Yes`, "confirm_delete"),
+      Markup.button.callback(`${emojs.no} No`, "not_confirm_delete")
     ]));
     return ctx.wizard.next();
   },
@@ -306,7 +305,7 @@ deleteOrderWizard.action("not_confirm_delete", async (ctx) => {
 })
 
 
-export const setupOrderWizards = (bot: Telegraf<MyContext>) => {
+export const setupOrderWizards = (bot: Telegraf<BotContext>) => {
   bot.action('add_order', async (ctx) => ctx.scene.enter('addOrderWizard'))
   bot.action('delete_order', async (ctx) => ctx.scene.enter('deleteOrderWizard'))
 }

@@ -1,13 +1,12 @@
-import { Format, Markup, Context } from "telegraf";
-import { getDoc, getListDocs } from "../libs/firestore";
-import { getAddOrderTemplate } from "../schemas";
-import { Order } from '../models'
-import moment from "moment";
-import numeral from 'numeral'
-import _ from 'lodash'
+import { Context, Format, Markup } from "telegraf";
+import { getDoc, getListDocs } from "../../libs/firestore";
+import { emojs, getExplorer } from "../../libs/constants2";
+import { Order } from "./model";
 import { Timestamp } from "firebase-admin/firestore";
-import { emojs, getExplorer } from "../libs/constants2";
-import { MyContext } from "../wizards";
+import moment from "moment";
+import numeral from "numeral";
+import { getAddOrderTemplate } from "./schema";
+import _ from "lodash";
 
 export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
   console.log({ isRefresh })
@@ -16,7 +15,6 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
   }
   const teleUser = ctx.from;
   if (teleUser) {
-    // const loadingMsg = await ctx.reply('🧐')
     //Check if user is exist
     const user = await getDoc("users", null, [
       {

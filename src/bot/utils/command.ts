@@ -43,8 +43,7 @@ export const backToMainMenu = async (ctx: Context) => {
       [
         Markup.button.callback("🔍 Wallets", "show_wallet_menu"),
         Markup.button.callback("🦄 Orders", "show_order_menu"),
-      ],
-      [Markup.button.callback("🧹 Clear histories", "clear_history")],
+      ]
     ])
   );
 };

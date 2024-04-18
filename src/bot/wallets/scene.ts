@@ -1,14 +1,16 @@
 import { Format, Markup, Scenes } from "telegraf";
-import { MyContext, yesOrNoKeyboardNetwork } from "./context";
+import { BotContext, cancelBtn, yesOrNoKeyboardNetwork } from "../context";
 import { isAddress } from "ethers-new";
-import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../libs/firestore";
-import { removeUndefined } from "../libs";
-import { Wallet } from "../models";
+import { Wallet } from "./model";
+import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../../libs/firestore";
+import { removeUndefined } from "../../libs";
+import { emojs } from "../../libs/constants2";
+import { deleteMessage } from "../util";
 
-export const addWalletWizard = new Scenes.WizardScene<MyContext>(
+export const addWalletWizard = new Scenes.WizardScene<BotContext>(
   'addWalletWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your wallet address?');
+    await ctx.reply('What is your wallet address?', cancelBtn);
     ctx.scene.session.walletAddress = ''
     return ctx.wizard.next();
   },
@@ -83,10 +85,10 @@ export const addWalletWizard = new Scenes.WizardScene<MyContext>(
   },
 );
 
-export const deleteWalletWizard = new Scenes.WizardScene<MyContext>(
+export const deleteWalletWizard = new Scenes.WizardScene<BotContext>(
   'deleteWalletWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your wallet id?');
+    await ctx.reply('What is your wallet id?', cancelBtn);
     ctx.scene.session.idWalletToDelete = ''
     return ctx.wizard.next();
   },
@@ -99,7 +101,10 @@ export const deleteWalletWizard = new Scenes.WizardScene<MyContext>(
     } else {
       return ctx.wizard.next();
     }
-    await ctx.reply(Format.fmt`Are you sure to delete the wallet? ${Format.code('Yes')} or ${Format.code('No')}`, yesOrNoKeyboardNetwork);
+    await ctx.reply(Format.fmt`Are you sure to delete the wallet?`, Markup.inlineKeyboard([
+      [Markup.button.callback(`${emojs.yes} Yes`, "yes")],
+      [Markup.button.callback(`${emojs.no} No`, "no")],
+    ]));
     return ctx.wizard.next();
   },
   async (ctx) => {
@@ -117,7 +122,7 @@ export const deleteWalletWizard = new Scenes.WizardScene<MyContext>(
   },
 );
 
-export const editWalletWizard = new Scenes.WizardScene<MyContext>(
+export const editWalletWizard = new Scenes.WizardScene<BotContext>(
   'editWalletWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await ctx.reply('What is your wallet id?');
@@ -149,3 +154,44 @@ export const editWalletWizard = new Scenes.WizardScene<MyContext>(
     return ctx.scene.leave();
   },
 );
+
+
+deleteWalletWizard.action("leave", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    await ctx.deleteMessage(ctx.callbackQuery.message?.message_id)
+  }
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})
+
+deleteWalletWizard.action("yes", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    await ctx.deleteMessage(ctx.callbackQuery.message?.message_id)
+  }
+  await deleteDoc("wallets", ctx.scene.session.idWalletToDelete)
+  await ctx.reply(Format.fmt`Wallet address ${Format.code(ctx.scene.session.idWalletToDelete)} deleted`);
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})
+
+deleteWalletWizard.action("no", async (ctx) => {
+  let msgId = null
+  if (ctx.callbackQuery.message?.message_id) {
+    msgId = ctx.callbackQuery.message?.message_id
+  }
+  if (msgId) {
+    await deleteMessage(ctx, msgId)
+    await deleteMessage(ctx, msgId - 1)
+    await deleteMessage(ctx, msgId - 2)
+  }
+  ctx.scene.reset()
+  return await ctx.scene.leave()
+})

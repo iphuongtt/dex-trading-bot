@@ -1,5 +1,5 @@
 import { Format, Markup, Context } from "telegraf";
-import { getDoc, getListDocs } from "../libs/firestore";
+import { getDoc, getListDocs } from "../../libs/firestore";
 
 export const listWallets = async (ctx: Context) => {
   const teleUser = ctx.from;
