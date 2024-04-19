@@ -12,22 +12,23 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEBHOOK_DOMAIN = process.env.WEBHOOK_DOMAIN;
 const WEBHOOK_PORT = process.env.WEBHOOK_PORT;
 const ENV = process.env.ENV || "local";
-if (!BOT_TOKEN) {
-  throw new Error("aaa");
+if (!BOT_TOKEN || !WEBHOOK_DOMAIN || !WEBHOOK_PORT) {
+  throw new Error("Token Or Webook not found");
 }
-// if (!BOT_TOKEN || !WEBHOOK_DOMAIN || !WEBHOOK_PORT) {
-//     throw new Error('aaa')
-// }
 expressApp.use(express.static("static"));
 expressApp.use(express.json());
-
-// specify generic type of Telegraf context
-// thus Typescript will know that ctx.scene exists
 const bot = new Telegraf<BotContext>(BOT_TOKEN);
 
 setupBot(bot)
 setupOrder(bot);
 setupWallet(bot);
+
 export const startBot = () => {
-  bot.launch();
+  ENV === 'local' ? bot.launch() :
+    bot.launch({
+      webhook: {
+        domain: WEBHOOK_DOMAIN,
+        port: 3000
+      },
+    });
 };

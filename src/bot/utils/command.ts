@@ -1,4 +1,5 @@
 import { Context, Markup } from "telegraf";
+import { emojs } from "../../libs/constants2";
 
 export const getMenus = async (ctx: Context) => {
   return await ctx.reply(
@@ -8,7 +9,7 @@ export const getMenus = async (ctx: Context) => {
         Markup.button.callback("🔍 Wallets", "show_wallet_menu"),
         Markup.button.callback("🦄 Orders", "show_order_menu"),
       ],
-      // [Markup.button.callback("🧹 Clear histories", "clear_history")],
+      [Markup.button.callback("Close menu", "close_menu")],
     ])
   );
 };
@@ -43,7 +44,8 @@ export const backToMainMenu = async (ctx: Context) => {
       [
         Markup.button.callback("🔍 Wallets", "show_wallet_menu"),
         Markup.button.callback("🦄 Orders", "show_order_menu"),
-      ]
+      ],
+      [Markup.button.callback(`${emojs.close} Close menu`, "close_menu")],
     ])
   );
 };

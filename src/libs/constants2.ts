@@ -97,5 +97,6 @@ export const emojs = {
   refresh: '🔄',
   order: '🦄',
   target: '🎯',
-  back: '🔙'
+  back: '🔙',
+  close: '❌'
 }

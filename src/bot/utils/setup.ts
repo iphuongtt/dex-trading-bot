@@ -6,6 +6,7 @@ import { removeUndefined } from "../../libs";
 import { backToMainMenu, clearHistory, getMenus } from "./command";
 import { addOrderWizard, deleteOrderWizard, editOrderAmountWizard, editOrderPriceWizard, editOrderStatusWizard } from "../orders";
 import { addWalletWizard, deleteWalletWizard, editWalletWizard } from "../wallets";
+import { deleteLastMessage } from "../util";
 
 export const setupBot = (bot: Telegraf<BotContext>) => {
   const stage = new Scenes.Stage<BotContext>([
@@ -64,6 +65,9 @@ export const setupBot = (bot: Telegraf<BotContext>) => {
   //Bot Actions
   bot.action("clear_history", clearHistory);
   bot.action("back_to_main_menu", backToMainMenu);
+  bot.action("close_menu", ctx => {
+    return deleteLastMessage(ctx)
+  })
   //Bot starting
   const commands = [
     { command: "/start", description: "Start using Mybestcryptos trading bot" },
