@@ -1,10 +1,11 @@
-import { Format, Markup, Scenes } from "telegraf";
-import { BotContext, cancelBtn, cancelBtnStep1, cancelBtnStep2, yesOrNoInlineKeyboard, yesOrNoKeyboardNetwork } from "../context";
+import { Format, Scenes } from "telegraf";
+import { BotContext, cancelBtn, cancelBtnStep1, cancelBtnStep2, yesOrNoInlineKeyboard } from "../context";
 import { isAddress } from "ethers-new";
 import { Wallet } from "./model";
 import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../../libs/firestore";
 import { removeUndefined } from "../../libs";
-import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId, leaveScene, leaveSceneStep1, leaveSceneStep2, leaveSceneWallet } from "../util";
+import { deleteLastMessage, deleteMessage, getCurrentMessageId } from "../util";
+import { leaveSceneWalletStep1, leaveSceneWalletStep2, leaveSceneWalletStep0 } from "./command";
 
 export const addWalletWizard = new Scenes.WizardScene<BotContext>(
   'addWalletWizard', // first argument is Scene_ID, same as for BaseScene
@@ -141,12 +142,11 @@ export const editWalletWizard = new Scenes.WizardScene<BotContext>(
   },
 );
 
-addWalletWizard.action("leave", leaveSceneWallet)
-addWalletWizard.action("leave_step_1", leaveSceneStep1)
-editWalletWizard.action("leave", leaveSceneWallet)
-editWalletWizard.action("leave_step_2", leaveSceneStep2)
-deleteWalletWizard.action("leave", leaveSceneWallet)
-
+addWalletWizard.action("leave", leaveSceneWalletStep0)
+addWalletWizard.action("leave_step_1", leaveSceneWalletStep1)
+editWalletWizard.action("leave", leaveSceneWalletStep0)
+editWalletWizard.action("leave_step_2", leaveSceneWalletStep2)
+deleteWalletWizard.action("leave", leaveSceneWalletStep0)
 deleteWalletWizard.action("yes", async (ctx) => {
   const msgId = getCurrentMessageId(ctx)
   if (msgId) {
@@ -158,11 +158,4 @@ deleteWalletWizard.action("yes", async (ctx) => {
   return await ctx.scene.leave()
 })
 
-deleteWalletWizard.action("no", async (ctx) => {
-  const msgId = getCurrentMessageId(ctx)
-  if (msgId) {
-    deleteMessages(ctx, msgId, 2)
-  }
-  ctx.scene.reset()
-  return await ctx.scene.leave()
-})
+deleteWalletWizard.action("no", leaveSceneWalletStep2)

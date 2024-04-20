@@ -1,16 +1,19 @@
 import { Format, Markup, Scenes, Telegraf } from "telegraf";
-import { BotContext, cancelBtn, yesOrNoKeyboardNetwork } from "../context";
+import { BotContext, cancelBtn } from "../context";
 import _ from 'lodash'
 import { isValidAddOrder } from "./schema";
 import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../../libs/firestore";
 import { Order } from "./model";
 import { isNumeric, removeUndefined } from "../../libs";
 import { emojs } from "../../libs/constants2";
+import { deleteLastMessage } from "../util";
+import { leaveSceneOrderStep0 } from "./command";
 
 export const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
   async (ctx) => {
-    await ctx.reply("Please enter the order data");
+    await deleteLastMessage(ctx);
+    await ctx.reply("Please enter the order data", cancelBtn);
     return ctx.wizard.next();
   },
   async (ctx) => {
@@ -21,13 +24,15 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
         if (isValidAddOrder(orderData)) {
           const teleUser = ctx.from
           if (!teleUser) {
-            return ctx.reply('User not found')
+            await ctx.reply('User not found')
+            return ctx.scene.leave()
           }
           const user = await getDoc('users', null, [
             { field: 'telegram_id', operation: '==', value: teleUser.id }
           ])
           if (!user) {
-            return ctx.reply('User not found')
+            await ctx.reply('User not found')
+            return ctx.scene.leave()
           }
           //Check if the wallet address has been configured with the corresponding private key or not.
           const walletAddress = _.get(orderData, 'wallet', null)
@@ -36,11 +41,13 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
             { field: 'telegram_id', operation: '==', value: teleUser.id }
           ])
           if (!wallet) {
-            return ctx.reply('Wallet not found')
+            await ctx.reply('Wallet not found')
+            return ctx.scene.leave()
           }
           const _pri = _.get(process.env, `WALLET_${wallet.id}_PRIVATE_KEY`)
           if (!_pri) {
-            return ctx.reply('The wallet has not been configured with the corresponding private key')
+            await ctx.reply('The wallet has not been configured with the corresponding private key')
+            return ctx.scene.leave()
           }
           const newOrder: Order = {
             ...orderData,
@@ -60,7 +67,7 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
           } else {
             await ctx.reply(Format.fmt`Order add error`);
           }
-          return ctx.scene.leave();
+          return ctx.scene.leave()
         } else {
           await ctx.reply(Format.fmt`The data is not in the correct JSON format`);
           return ctx.scene.leave()
@@ -72,45 +79,19 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
     } else {
       ctx.scene.leave();
     }
-  },
-  async (ctx) => {
-    console.log({ ctx })
-    await ctx.reply("Done");
-    return await ctx.scene.leave();
   }
 );
 
 export const getTemplateWizard = new Scenes.WizardScene<BotContext>(
   "getTemplateWizard",
   async (ctx) => {
+    await deleteLastMessage(ctx);
     const keyboards = Markup.inlineKeyboard([
-      Markup.button.callback('Add order', 'get_template_add_order'),
+      [Markup.button.callback('Add order', 'get_template_add_order')],
+      [Markup.button.callback(`${emojs.cancel} Cancel`, "leave")],
     ])
     await ctx.reply("Select tempalte for: ", keyboards);
     return ctx.wizard.next();
-  },
-  async (ctx) => {
-    if (ctx.message && "text" in ctx.message) {
-      try {
-        const orderData = JSON.parse(ctx.message.text);
-        if (isValidAddOrder(orderData)) {
-          await ctx.reply("Done");
-          return ctx.scene.leave();
-        } else {
-          await ctx.reply("Lỗi dữ liệu, Vui lòng thực hiện lại");
-          return ctx.wizard.back()
-        }
-      } catch (error) {
-        await ctx.reply(Format.fmt`Dữ liệu không đúng định dạng JSON, Vui lòng thực hiện lại hoặc sử dụng lệnh /gettemplate để lây template`);
-        return ctx.wizard.back()
-      }
-    } else {
-      ctx.wizard.back();
-    }
-  },
-  async (ctx) => {
-    await ctx.reply("Done");
-    return await ctx.scene.leave();
   }
 );
 
@@ -309,3 +290,6 @@ export const setupOrderWizards = (bot: Telegraf<BotContext>) => {
   bot.action('add_order', async (ctx) => ctx.scene.enter('addOrderWizard'))
   bot.action('delete_order', async (ctx) => ctx.scene.enter('deleteOrderWizard'))
 }
+
+addOrderWizard.action("leave", leaveSceneOrderStep0)
+getTemplateWizard.action("leave", leaveSceneOrderStep0)

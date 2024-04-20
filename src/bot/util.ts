@@ -84,14 +84,3 @@ export const deleteLastMessage = async (ctx: Context) => {
     return deleteMessage(ctx, msgId)
   }
 }
-
-
-export const leaveSceneWallet = async (ctx: BotContext) => {
-  const msgId = getCurrentMessageId(ctx)
-  if (msgId) {
-    await deleteMessage(ctx, msgId)
-  }
-  ctx.scene.reset()
-  await ctx.scene.leave()
-  return showWalletMenus(ctx)
-}

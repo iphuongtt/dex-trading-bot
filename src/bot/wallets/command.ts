@@ -1,7 +1,8 @@
 import { Format, Markup, Context } from "telegraf";
 import { getDoc, getListDocs } from "../../libs/firestore";
-import { deleteLastMessage } from "../util";
+import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
 import { emojs } from "../../libs/constants2";
+import { BotContext } from "../context";
 
 export const listWallets = async (ctx: Context) => {
   const teleUser = ctx.from;
@@ -87,3 +88,39 @@ export const showWalletMenus = async (ctx: Context) => {
     ])
   );
 };
+
+/**
+ * Delete current message and next number message in delNumberNext param
+ * @param ctx
+ * @param delNumberNext
+ * @returns
+ */
+export const leaveSceneWallet = async (ctx: BotContext, delNumberNext?: number) => {
+  const msgId = getCurrentMessageId(ctx)
+  if (msgId) {
+    if (delNumberNext && delNumberNext > 0) {
+      await deleteMessages(ctx, msgId, delNumberNext)
+    } else {
+      await deleteMessage(ctx, msgId)
+    }
+  }
+  ctx.scene.reset()
+  await ctx.scene.leave()
+  return showWalletMenus(ctx)
+}
+
+export const leaveSceneWalletStep0 = async (ctx: BotContext) => {
+  return leaveSceneWallet(ctx, 0)
+}
+
+export const leaveSceneWalletStep1 = async (ctx: BotContext) => {
+  return leaveSceneWallet(ctx, 1)
+}
+
+export const leaveSceneWalletStep2 = async (ctx: BotContext) => {
+  return leaveSceneWallet(ctx, 2)
+}
+
+export const leaveSceneWalletStep3 = async (ctx: BotContext) => {
+  return leaveSceneWallet(ctx, 3)
+}
