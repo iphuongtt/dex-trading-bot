@@ -8,7 +8,7 @@ import numeral from "numeral";
 import { getAddOrderTemplate } from "./schema";
 import _ from "lodash";
 import { BotContext } from "../context";
-import { deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
+import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
 
 export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
   console.log({ isRefresh })
@@ -85,19 +85,25 @@ export const getTemplateAddOrder = async (ctx: Context) => {
   await ctx.reply(Format.code(getAddOrderTemplate()));
 }
 
-export const getOrderMenus = async (ctx: Context) => {
-  await ctx.deleteMessage().catch(e => console.log(e));
-  return await ctx.reply(`${emojs.order} Order menu`, Markup.inlineKeyboard([
+const _getOrderMenus = (ctx: Context) => {
+  return ctx.reply(`${emojs.order} Order menu`, Markup.inlineKeyboard([
     [Markup.button.callback(`${emojs.order} My orders`, 'get_my_orders'), Markup.button.callback(`${emojs.template} Get template`, 'get_template')],
     [Markup.button.callback(`${emojs.add} Add order`, 'add_order'), Markup.button.callback(`${emojs.edit} Edit order`, 'edit_order')],
     [Markup.button.callback(`${emojs.del} Del order`, 'delete_order'), Markup.button.callback(`${emojs.back} Back`, 'back_to_main_menu')]
   ]))
 }
 
+export const getOrderMenus = async (ctx: Context) => {
+  await deleteLastMessage(ctx);
+  return _getOrderMenus(ctx)
+}
 
-export const editOrder = async (ctx: Context) => {
-  await ctx.deleteMessage().catch(e => console.log(e));
-  return await ctx.reply('🦄 Which would you like to edit?', Markup.inlineKeyboard([
+export const showOrderMenus = async (ctx: Context) => {
+  return _getOrderMenus(ctx)
+};
+
+const _getEditOrderMenus = (ctx: Context) => {
+  return ctx.reply('🦄 Which would you like to edit?', Markup.inlineKeyboard([
     [Markup.button.callback('Change target price', 'change_target_price')],
     [Markup.button.callback('Change amount', 'change_order_amount')],
     [Markup.button.callback('Active or Deactive', 'change_order_status')],
@@ -105,26 +111,19 @@ export const editOrder = async (ctx: Context) => {
   ]))
 }
 
+export const editOrder = async (ctx: Context) => {
+  await deleteLastMessage(ctx);
+  return _getEditOrderMenus(ctx)
+}
 
-
-
-export const showOrderMenus = async (ctx: Context) => {
-  return ctx.reply(
-    "Wallet menu",
-    Markup.inlineKeyboard([
-      [
-        Markup.button.callback("💼 My orders", "get_my_orders"),
-        Markup.button.callback("➕ Add order", "add_order"),
-      ],
-      [
-        Markup.button.callback("✏️ Edit order", "edit_order"),
-        Markup.button.callback("❌ Del order", "delete_order"),
-      ],
-      [Markup.button.callback(`${emojs.template} Get template`, 'get_template')],
-      [Markup.button.callback('🔙 Back', 'back_to_main_menu')]
-    ])
-  );
+export const showEditOrderMenus = async (ctx: Context) => {
+  return _getEditOrderMenus(ctx)
 };
+
+
+
+
+
 
 /**
  * Delete current message and next number message in delNumberNext param
@@ -163,3 +162,29 @@ export const leaveSceneOrderStep3 = async (ctx: BotContext) => {
 }
 
 
+
+
+
+
+
+export const leaveSceneEditOrder = async (ctx: BotContext, delNumberNext?: number) => {
+  const msgId = getCurrentMessageId(ctx)
+  if (msgId) {
+    if (delNumberNext && delNumberNext > 0) {
+      await deleteMessages(ctx, msgId, delNumberNext)
+    } else {
+      await deleteMessage(ctx, msgId)
+    }
+  }
+  ctx.scene.reset()
+  await ctx.scene.leave()
+  return _getEditOrderMenus(ctx)
+}
+
+export const leaveSceneEditOrderStep0 = async (ctx: BotContext) => {
+  return leaveSceneEditOrder(ctx, 0)
+}
+
+export const leaveSceneEditOrderStep1 = async (ctx: BotContext) => {
+  return leaveSceneEditOrder(ctx, 1)
+}

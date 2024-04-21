@@ -4,20 +4,14 @@ import { create, getServerTimeStamp, isExists } from "../../libs/firestore";
 import { User } from "./model";
 import { removeUndefined } from "../../libs";
 import { backToMainMenu, clearHistory, getMenus } from "./command";
-import { addOrderWizard, deleteOrderWizard, editOrderAmountWizard, editOrderPriceWizard, editOrderStatusWizard } from "../orders";
-import { addWalletWizard, deleteWalletWizard, editWalletWizard } from "../wallets";
+import { orderScenes } from "../orders";
+import { walletScenes } from "../wallets";
 import { deleteLastMessage } from "../util";
 
 export const setupBot = (bot: Telegraf<BotContext>) => {
   const stage = new Scenes.Stage<BotContext>([
-    addOrderWizard,
-    addWalletWizard,
-    deleteWalletWizard,
-    editWalletWizard,
-    editOrderPriceWizard,
-    editOrderAmountWizard,
-    editOrderStatusWizard,
-    deleteOrderWizard,
+    ...orderScenes,
+    ...walletScenes
   ]);
 
   bot.use(session());

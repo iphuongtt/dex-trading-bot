@@ -3,7 +3,6 @@ import { BotContext } from "../context";
 import {
   editOrder,
   getOrderMenus,
-  getTemplate,
   getTemplateAddOrder,
   listOrders,
 } from "./command";
@@ -24,7 +23,13 @@ export const setupOrder = (bot: Telegraf<BotContext>) => {
   );
   bot.action("get_my_orders", async (ctx) => listOrders(ctx, false));
   bot.action("refresh_my_orders", async (ctx) => listOrders(ctx, true));
-  bot.action("get_template", getTemplate);
+  // bot.action("get_template", getTemplate);
+
+  bot.action("get_template", async (ctx) =>
+    ctx.scene.enter("getTemplateWizard")
+  );
+
+
   bot.action("get_template_add_order", getTemplateAddOrder);
   bot.action("show_order_menu", getOrderMenus);
   bot.action("back_to_order_menu", getOrderMenus);

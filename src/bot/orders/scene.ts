@@ -7,9 +7,9 @@ import { Order } from "./model";
 import { isNumeric, removeUndefined } from "../../libs";
 import { emojs } from "../../libs/constants2";
 import { deleteLastMessage } from "../util";
-import { leaveSceneOrderStep0 } from "./command";
+import { leaveSceneEditOrderStep0, leaveSceneOrderStep0 } from "./command";
 
-export const addOrderWizard = new Scenes.WizardScene<BotContext>(
+const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -82,7 +82,7 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
-export const getTemplateWizard = new Scenes.WizardScene<BotContext>(
+const getTemplateWizard = new Scenes.WizardScene<BotContext>(
   "getTemplateWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -95,10 +95,14 @@ export const getTemplateWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
-export const editOrderPriceWizard = new Scenes.WizardScene<BotContext>(
+const editOrderPriceWizard = new Scenes.WizardScene<BotContext>(
   'editOrderPriceWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your order id?');
+    await deleteLastMessage(ctx);
+    await ctx.reply(
+      "Please enter the order ID that you want to edit",
+      cancelBtn
+    );
     ctx.scene.session.idOrderToEdit = ''
     return ctx.wizard.next();
   },
@@ -134,10 +138,14 @@ export const editOrderPriceWizard = new Scenes.WizardScene<BotContext>(
   },
 );
 
-export const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
+const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
   'editOrderAmountWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your order id?');
+    await deleteLastMessage(ctx);
+    await ctx.reply(
+      "Please enter the order ID that you want to edit",
+      cancelBtn
+    );
     ctx.scene.session.idOrderToEdit = ''
     return ctx.wizard.next();
   },
@@ -172,10 +180,14 @@ export const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
   },
 );
 
-export const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
+const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
   'editOrderStatusWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your order id?');
+    await deleteLastMessage(ctx);
+    await ctx.reply(
+      "Please enter the order ID that you want to edit",
+      cancelBtn
+    );
     ctx.scene.session.idOrderToEdit = ''
     return ctx.wizard.next();
   },
@@ -211,10 +223,14 @@ export const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
 );
 
 
-export const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
+const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
   'deleteOrderWizard', // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
-    await ctx.reply('What is your order id?', cancelBtn);
+    await deleteLastMessage(ctx);
+    await ctx.reply(
+      "Please enter the order ID that you want to delete",
+      cancelBtn
+    );
     ctx.scene.session.idOrderToDelete = ''
     return ctx.wizard.next();
   },
@@ -293,3 +309,17 @@ export const setupOrderWizards = (bot: Telegraf<BotContext>) => {
 
 addOrderWizard.action("leave", leaveSceneOrderStep0)
 getTemplateWizard.action("leave", leaveSceneOrderStep0)
+editOrderPriceWizard.action("leave", leaveSceneEditOrderStep0)
+editOrderAmountWizard.action("leave", leaveSceneEditOrderStep0)
+editOrderStatusWizard.action("leave", leaveSceneEditOrderStep0)
+deleteOrderWizard.action("leave", leaveSceneOrderStep0)
+
+
+export const orderScenes = [
+  addOrderWizard,
+  getTemplateWizard,
+  editOrderPriceWizard,
+  editOrderAmountWizard,
+  editOrderStatusWizard,
+  deleteOrderWizard
+]
