@@ -1,27 +1,35 @@
-import { ethers, BigNumber } from 'ethers';
+import { ethers, BigNumber } from "ethers";
 import {
   PERMIT2_ADDRESS,
   AllowanceTransfer,
-  AllowanceProvider
-} from '@uniswap/permit2-sdk';
-import { AlphaRouter, SwapType } from '@uniswap/smart-order-router';
-import { CurrencyAmount, TradeType, Percent, ChainId, Token, SWAP_ROUTER_02_ADDRESSES } from '@uniswap/sdk-core';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
-import erc20Abi from '../tokenABI/erc20.json'
-import { Token as OrderToken } from '../bot/orders'
-import { SupportedChain } from './types';
-import { getChainId, getChainRPC } from './utils';
-import { getDoc } from './firestore';
-import _ from 'lodash';
-import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
-import JSBI from 'jsbi';
-import { convertTargetPrice } from './conversion';
-import { Telegraf } from 'telegraf';
-import { BotContext } from '../bot';
-
+  AllowanceProvider,
+} from "@uniswap/permit2-sdk";
+import { AlphaRouter, SwapType } from "@uniswap/smart-order-router";
+import {
+  CurrencyAmount,
+  TradeType,
+  Percent,
+  ChainId,
+  Token,
+  SWAP_ROUTER_02_ADDRESSES,
+} from "@uniswap/sdk-core";
+import { Permit2Permit } from "@uniswap/universal-router-sdk/dist/utils/inputTokens";
+import erc20Abi from "../tokenABI/erc20.json";
+import { Token as OrderToken } from "../bot/orders";
+import { SupportedChain } from "./types";
+import { getChainId, getChainRPC } from "./utils";
+import { getDoc, updateDoc } from "./firestore";
+import _ from "lodash";
+import { UNIVERSAL_ROUTER_ADDRESS } from "@uniswap/universal-router-sdk";
+import JSBI from "jsbi";
+import { convertTargetPrice } from "./conversion";
+import { Format, Telegraf } from "telegraf";
+import { BotContext } from "../bot";
+import { getExplorer } from "./constants2";
 
 export class UserSwap {
-  chain: string;
+  orderId: string;
+  chain: SupportedChain;
   chainId: ChainId;
   tokenIn: Token;
   tokenOut: Token;
@@ -35,102 +43,161 @@ export class UserSwap {
   bot: Telegraf<BotContext>;
   telegram_id: number;
 
-  constructor(chain: SupportedChain, tokenIn: OrderToken, tokenOut: OrderToken, userId: string, walletAddress: string, tokenInAmount: number, targetPrice: number, bot: Telegraf<BotContext>, telegram_id: number) {
+  constructor(
+    orderId: string,
+    chain: SupportedChain,
+    tokenIn: OrderToken,
+    tokenOut: OrderToken,
+    userId: string,
+    walletAddress: string,
+    tokenInAmount: number,
+    targetPrice: number,
+    bot: Telegraf<BotContext>,
+    telegram_id: number
+  ) {
     this.chain = chain;
+    this.bot = bot;
+    this.telegram_id = telegram_id;
     if (chain) {
-      const _chainId = getChainId(chain)
+      const _chainId = getChainId(chain);
       if (_chainId) {
-        this.chainId = _chainId
+        this.chainId = _chainId;
       } else {
-        throw new Error('Chain not supported')
+        this.notify("ChainId is not supported")
+        throw new Error("Chain is not supported");
       }
     } else {
-      throw new Error('Chain not supported')
+      this.notify("ChainId not found")
+      throw new Error("Chain is not supported");
     }
-    const _rpc = getChainRPC(chain)
+    const _rpc = getChainRPC(chain);
     if (!_rpc) {
-      throw new Error('RPC not found')
+      this.notify("RPC not found")
+      throw new Error("RPC not found");
     }
-    this.tokenInAmount = tokenInAmount
-    this.targetPrice = targetPrice
-    this.userId = userId
-    this.walletAddress = walletAddress
-    this.uniswapRouterAddress = process.env.UNISWAP_ROUTER === 'UNIVERSAL' ? UNIVERSAL_ROUTER_ADDRESS(this.chainId) : SWAP_ROUTER_02_ADDRESSES(this.chainId);
+    this.orderId = orderId;
+    this.tokenInAmount = tokenInAmount;
+    this.targetPrice = targetPrice;
+    this.userId = userId;
+    this.walletAddress = walletAddress;
+    this.uniswapRouterAddress =
+      process.env.UNISWAP_ROUTER === "UNIVERSAL"
+        ? UNIVERSAL_ROUTER_ADDRESS(this.chainId)
+        : SWAP_ROUTER_02_ADDRESSES(this.chainId);
 
-    this.tokenIn = new Token(this.chainId, tokenIn.address, tokenIn.decimals, tokenIn.symbol, tokenIn.name)
-    this.tokenOut = new Token(this.chainId, tokenOut.address, tokenOut.decimals, tokenOut.symbol, tokenOut.name)
+    this.tokenIn = new Token(
+      this.chainId,
+      tokenIn.address,
+      tokenIn.decimals,
+      tokenIn.symbol,
+      tokenIn.name
+    );
+    this.tokenOut = new Token(
+      this.chainId,
+      tokenOut.address,
+      tokenOut.decimals,
+      tokenOut.symbol,
+      tokenOut.name
+    );
     this.ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
-    this.bot = bot
-    this.telegram_id = telegram_id
   }
 
   async setup(): Promise<boolean> {
-    const _wallet = await getDoc('wallets', null, [
+    const _wallet = await getDoc("wallets", null, [
       {
-        field: 'user_id', operation: '==', value: this.userId
+        field: "user_id",
+        operation: "==",
+        value: this.userId,
       },
       {
-        field: 'wallet', operation: '==', value: this.walletAddress
-      }
-    ])
+        field: "wallet",
+        operation: "==",
+        value: this.walletAddress,
+      },
+    ]);
     if (!_wallet) {
-      return false
+      return false;
     }
-    const _pri = _.get(process.env, `WALLET_${_wallet.id}_PRIVATE_KEY`)
+    const _pri = _.get(process.env, `WALLET_${_wallet.id}_PRIVATE_KEY`);
+    console.log({_pri}  )
     if (!_pri) {
-      this.bot.telegram.sendMessage(this.telegram_id, 'PRIVATE KEY NOT FOUND')
-      return false
+      this.bot.telegram.sendMessage(this.telegram_id, "PRIVATE KEY NOT FOUND");
+      return false;
     }
     try {
       this.ethersSigner = new ethers.Wallet(_pri, this.ethersProvider);
     } catch (error) {
-      this.bot.telegram.sendMessage(this.telegram_id, 'PRIVATE KEY INVALID')
-      return false
+      this.bot.telegram.sendMessage(this.telegram_id, "PRIVATE KEY INVALID");
+      return false;
     }
 
     const balance = await this.getSwap2CurrencyBalance();
     const bigZero = JSBI.BigInt(0);
     if (JSBI.EQ(balance, bigZero)) {
-      return false
+      return false;
     }
-    const bigTarget = JSBI.BigInt(convertTargetPrice(this.targetPrice, this.tokenOut.decimals));
+    const bigTarget = JSBI.BigInt(
+      convertTargetPrice(this.targetPrice, this.tokenOut.decimals)
+    );
     const price = await this.getPrice();
     if (!price) {
-      return false
+      return false;
     }
     if (JSBI.LT(price, bigTarget)) {
-      return false
+      return false;
     }
-    return true
+    return true;
+  }
+
+  async notify(msg: any) {
+    return this.bot.telegram.sendMessage(this.telegram_id, msg)
   }
 
   async getSwap2CurrencyBalance(): Promise<BigNumber> {
     // Handle ETH directly
     if (this.tokenIn.isNative) {
-      return await this.ethersProvider.getBalance(this.walletAddress)
+      return await this.ethersProvider.getBalance(this.walletAddress);
     }
     // Get currency otherwise
     const walletContract = new ethers.Contract(
       this.tokenIn.address,
       erc20Abi,
       this.ethersProvider
-    )
-    const balance: BigNumber = await walletContract.balanceOf(this.walletAddress)
-    return balance
+    );
+    const balance: BigNumber = await walletContract.balanceOf(
+      this.walletAddress
+    );
+    return balance;
   }
 
   async approvePermit2Contract(amount: BigNumber) {
-    const erc20 = new ethers.Contract(this.tokenIn.address, erc20Abi, this.ethersSigner);
+    const erc20 = new ethers.Contract(
+      this.tokenIn.address,
+      erc20Abi,
+      this.ethersSigner
+    );
     const approveTx = await erc20.approve(PERMIT2_ADDRESS, amount);
-    console.log('approve tx hash:', approveTx.hash);
+    this.notify(Format.fmt`Approve tx hash: ${Format.link(
+      approveTx.hash,
+      `${getExplorer(this.chain)}/tx/${approveTx.hash}`
+    )}`)
+
     // wait for approve transaction confirmation
     const receipt = await approveTx.wait();
-    if (receipt.status === 1) console.log('approve transaction confirmed');
-    else throw new Error(receipt);
+    if (receipt.status === 1) {
+      this.notify("Approve transaction confirmed")
+    }
+    else {
+      throw new Error(receipt);
+    }
   }
 
   async getAllowanceAmount(spender: string) {
-    const erc20 = new ethers.Contract(this.tokenIn.address, erc20Abi, this.ethersSigner);
+    const erc20 = new ethers.Contract(
+      this.tokenIn.address,
+      erc20Abi,
+      this.ethersSigner
+    );
     const allowance = await erc20.allowance(this.walletAddress, spender);
     return allowance;
   }
@@ -145,7 +212,10 @@ export class UserSwap {
       amountInWei.toString()
     );
 
-    const router = new AlphaRouter({ chainId: this.chainId, provider: this.ethersProvider });
+    const router = new AlphaRouter({
+      chainId: this.chainId,
+      provider: this.ethersProvider,
+    });
     const route = await router.route(
       inputAmount,
       this.tokenOut,
@@ -157,19 +227,21 @@ export class UserSwap {
         deadlineOrPreviousBlockhash: Math.floor(Date.now() / 1000 + 600),
         inputTokenPermit: {
           ...permit,
-          signature
-        }
+          signature,
+        },
       }
     );
     if (route) {
-      console.log(`Quote Exact In: ${amountInWei}  -> ${route.quote.toExact()}`);
+      console.log(
+        `Quote Exact In: ${amountInWei}  -> ${route.quote.toExact()}`
+      );
     }
     return route;
   }
 
   async executeSwap(): Promise<boolean> {
     if (!this.ethersSigner) {
-      return false
+      return false;
     }
     // swap basic info
     // NOTE: not handling native currency swaps here
@@ -185,16 +257,9 @@ export class UserSwap {
     // check if we have approved enough amount
     // for PERMIT2 in source token contract
     const allowance = await this.getAllowanceAmount(PERMIT2_ADDRESS);
-    console.log('current allowance:', allowance.toString());
     if (allowance.eq(0) || allowance.lt(amountInWei)) {
-      // approve permit2 contract for source token
-      // NOTE: amount is set to max here
-      // NOTE: this will send out approve tx
-      // and wait for confirmation
-      console.log('sending approve tx to add more allowance');
-      await this.approvePermit2Contract(
-        ethers.constants.MaxInt256
-      );
+      this.notify("sending approve tx to add more allowance")
+      await this.approvePermit2Contract(ethers.constants.MaxInt256);
     }
 
     // allowance provider is part of permit2 sdk
@@ -222,7 +287,7 @@ export class UserSwap {
         token: this.tokenIn.address,
         amount: amountInWei,
         expiration: expiry,
-        nonce
+        nonce,
       },
       spender: this.uniswapRouterAddress,
       sigDeadline: expiry,
@@ -236,7 +301,11 @@ export class UserSwap {
     console.log(JSON.stringify({ domain, types, values }));
 
     // create signature for permit
-    const signature = await this.ethersSigner._signTypedData(domain, types, values);
+    const signature = await this.ethersSigner._signTypedData(
+      domain,
+      types,
+      values
+    );
     // NOTE: optionally verify the signature
     const address = ethers.utils.verifyTypedData(
       domain,
@@ -245,22 +314,20 @@ export class UserSwap {
       signature
     );
 
-    if (address.toLowerCase() !== this.walletAddress.toLowerCase())
-      throw new Error('signature verification failed');
-    else console.log(`signature verified, signed by: ${address}`);
-
-    // get swap route for tokens
-    const route = await this.getSwapRoute(
-      amountInWei,
-      permit,
-      signature
-    );
-
-    if (!route) {
-      throw new Error('Route not found')
+    if (address.toLowerCase() !== this.walletAddress.toLowerCase()) {
+      this.notify("signature verification failed")
+      return false
+    } else {
+      console.log(`signature verified, signed by: ${address}`);
     }
 
-    console.log('route calldata:', route.methodParameters?.calldata);
+    // get swap route for tokens
+    const route = await this.getSwapRoute(amountInWei, permit, signature);
+
+    if (!route) {
+      this.notify("Route not found")
+      return false
+    }
 
     // create transaction arguments for swap
     const txArguments = {
@@ -269,31 +336,35 @@ export class UserSwap {
       value: BigNumber.from(route.methodParameters?.value),
       from: this.walletAddress,
       gasPrice: route.gasPriceWei,
-      gasLimit: BigNumber.from('1000000')
+      gasLimit: BigNumber.from("1000000"),
     };
 
-    console.log({ txArguments })
+    console.log({ txArguments });
     // send out swap transaction
     const swapTx = await this.ethersSigner.sendTransaction(txArguments);
-    console.log('Swap tx hash:', swapTx.hash);
+    this.notify(Format.fmt`Swap tx hash: ${Format.link(
+      swapTx.hash,
+      `${getExplorer(this.chain)}/tx/${swapTx.hash}`
+    )}`)
     // wait for approve transaction confirmation
     const receipt = await swapTx.wait(6);
-    console.log({ receipt })
+    console.log({ receipt });
     if (receipt.status === 1) {
-      console.log('Swap transaction confirmed');
-      console.log('swap transaction', {
+      this.notify("Swap transaction confirmed")
+      console.log("swap transaction", {
         transactionHash: receipt.transactionHash,
         blockHash: receipt.blockHash,
         confirmations: receipt.confirmations,
         cumulativeGasUsed: receipt.cumulativeGasUsed.toHexString(),
         effectiveGasPrice: receipt.effectiveGasPrice.toHexString(),
         gasUsed: receipt.gasUsed.toString(),
-        logs: JSON.stringify(receipt.logs)
+        logs: JSON.stringify(receipt.logs),
       });
-      return true
+      await updateDoc("orders", this.orderId, { is_filled: true, transaction_hash: receipt.transactionHash})
+      return true;
     } else {
-      console.log('transction error');
-      return false
+      this.notify("Transaction error")
+      return false;
     }
   }
 
@@ -308,7 +379,10 @@ export class UserSwap {
       amountInWei.toString()
     );
 
-    const router = new AlphaRouter({ chainId: this.chainId, provider: this.ethersProvider });
+    const router = new AlphaRouter({
+      chainId: this.chainId,
+      provider: this.ethersProvider,
+    });
     const route = await router.route(
       inputAmount,
       this.tokenOut,
@@ -321,20 +395,11 @@ export class UserSwap {
       }
     );
     if (route) {
-      const routePath = route.route
-        .map((r) => r.tokenPath.map((t) => t.symbol).join(' -> '))
-        .join(', ')
-      console.log({ routePath })
-
-      console.log('Swap: ', `Route: ${amount} ${this.tokenIn.symbol
-        } to ${route.quote.toExact()} ${route.quote.currency.symbol
-        } using $${route.estimatedGasUsedUSD.toExact()} worth of gas`)
-
       return ethers.utils.parseUnits(
         route.quote.toExact(),
         this.tokenOut.decimals
       );
     }
-    return null
+    return null;
   }
 }

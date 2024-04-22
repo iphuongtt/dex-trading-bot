@@ -5,7 +5,7 @@ import { Telegraf } from "telegraf";
 import { BotContext } from "../bot";
 
 
-var cron = require("node-cron");
+let cron = require("node-cron");
 
 export class Swap2 {
   bot: Telegraf<BotContext>
@@ -14,16 +14,24 @@ export class Swap2 {
   }
 
   async executeTrade(order: Order) {
-    const { wallet, chain, target_price, amount_in, token_in, token_out, user_id, telegram_id } = order
+    const { wallet, chain, target_price, amount_in, token_in, token_out, user_id, telegram_id, id } = order
+    if (!telegram_id) {
+      return false
+    }
+    if (!wallet || !chain || !target_price || !amount_in || !token_in || !token_out || !user_id || !id) {
+      this.bot.telegram.sendMessage(telegram_id, 'Order not valid')
+      return false
+    }
     console.log({ order })
     try {
-      const userSwap = new UserSwap(chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
+      const userSwap = new UserSwap(id, chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
       const isOk = await userSwap.setup();
       if (isOk) {
         console.log('OK')
         // userSwap.executeSwap()
       }
-    } catch (error) {
+    } catch (error: any) {
+      this.bot.telegram.sendMessage(telegram_id, error.message)
       console.log(error)
     }
 

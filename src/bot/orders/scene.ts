@@ -241,7 +241,6 @@ const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
         ctx.scene.session.idOrderToDelete = ctx.message.text
       }
     } else {
-      console.log('afsfsf');
       return ctx.wizard.next();
     }
     await ctx.reply(Format.fmt`Are you sure to delete the order?`, Markup.inlineKeyboard([
