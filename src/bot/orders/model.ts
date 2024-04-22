@@ -6,6 +6,7 @@ export interface Token {
     decimals: number;
     symbol: string;
     name: string;
+    isNative: boolean
 }
 
 export interface Order {

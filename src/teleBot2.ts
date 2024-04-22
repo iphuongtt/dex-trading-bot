@@ -31,4 +31,6 @@ export const startBot = () => {
         port: 3000
       },
     });
+
+  return bot
 };

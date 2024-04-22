@@ -1,6 +1,7 @@
-import { Token, TradeType } from '@uniswap/sdk-core'
+import { ChainId, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade } from '@uniswap/v3-sdk'
 import { BigNumber, ethers } from 'ethers'
+import { SupportedChain } from './types'
 
 const MAX_DECIMALS = 4
 
@@ -33,4 +34,22 @@ export const removeUndefined = (obj: { [key: string]: any }) => {
 export const isNumeric = (str: any): boolean => {
   if (typeof str != "string") return false // we only process strings!
   return !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
+
+export const getChainId = (chain: SupportedChain): ChainId | undefined => {
+  switch (chain) {
+    case 'base':
+      return ChainId.BASE
+    default:
+      break;
+  }
+}
+
+export const getChainRPC = (chain: SupportedChain): string | undefined => {
+  switch (chain) {
+    case 'base':
+      return process.env.BASE_RPC_URL
+    default:
+      break;
+  }
 }

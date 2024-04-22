@@ -91,7 +91,7 @@ const getTemplateWizard = new Scenes.WizardScene<BotContext>(
       [Markup.button.callback(`${emojs.cancel} Cancel`, "leave")],
     ])
     await ctx.reply("Select tempalte for: ", keyboards);
-    return ctx.wizard.next();
+    return ctx.scene.leave()
   }
 );
 

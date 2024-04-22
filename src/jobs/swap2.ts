@@ -1,45 +1,45 @@
-import JSBI from "jsbi";
-import { executeSwap, getPrice, getSwap2CurrencyBalance } from "../libs/swap2";
-import { destToken, sourceToken, targetPrice, walletAddress } from "../libs/constants2";
-import { convertTargetPrice } from "../libs/conversion";
+import { UserSwap } from "../libs/userSwap";
+import { getListDocs } from "../libs/firestore";
+import { Order } from "../bot/orders";
+import { Telegraf } from "telegraf";
+import { BotContext } from "../bot";
+
 
 var cron = require("node-cron");
 
 export class Swap2 {
-  private isDone: boolean = false
-  do = async () => {
-    if(this.isDone) {
-      console.log('Done')
-      throw new Error('Done')
-    }
-    if (!walletAddress) {
-      console.log('Wallet not found')
-      throw new Error('error')
+  bot: Telegraf<BotContext>
+  constructor(bot: Telegraf<BotContext>) {
+    this.bot = bot
+  }
+
+  async executeTrade(order: Order) {
+    const { wallet, chain, target_price, amount_in, token_in, token_out, user_id, telegram_id } = order
+    console.log({ order })
+    try {
+      const userSwap = new UserSwap(chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
+      const isOk = await userSwap.setup();
+      if (isOk) {
+        console.log('OK')
+        // userSwap.executeSwap()
+      }
+    } catch (error) {
+      console.log(error)
     }
 
-    const balance = await getSwap2CurrencyBalance(
-      walletAddress,
-      sourceToken
-    );
-    console.log({balance:balance.toString()})
-    const bigZero = JSBI.BigInt(0);
-    const bigTarget = JSBI.BigInt(convertTargetPrice(targetPrice, destToken.decimals));            
-    if (JSBI.GT(balance, bigZero)) {
-      const price = await getPrice();      
-      if (price) {
-        const date = new Date();
-        if (JSBI.GE(price, bigTarget)) {
-          //Sell when price >= target price
-          const swapResult = await executeSwap()
-          if (swapResult) {
-            this.isDone = true
-          }          
-        }
+  }
+
+  do = async () => {
+    //Get all order
+    const orders = await getListDocs("orders", [
+      {
+        field: 'is_active', operation: '==', value: true
+      },
+      {
+        field: 'is_filled', operation: '==', value: false
       }
-    } else {
-      console.log("Balance zero");
-      throw new Error("Balance zero");
-    }
+    ])
+    orders.map(order => this.executeTrade(order))
   };
 
   start = async () => {

@@ -10,11 +10,12 @@ import _ from "lodash";
 import { BotContext } from "../context";
 import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
 
+export const btnShowOrderMenus = Markup.inlineKeyboard([
+  Markup.button.callback(`${emojs.back} Back`, 'show_order_menu')
+]);
+
 export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
-  console.log({ isRefresh })
-  if (isRefresh) {
-    await ctx.deleteMessage().catch(e => console.log(e))
-  }
+  await deleteLastMessage(ctx)
   const teleUser = ctx.from;
   if (teleUser) {
     //Check if user is exist
@@ -39,37 +40,27 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
         const title = Format.bold('Your orders are:\n')
         const items: any = [Format.fmt`-------------------------------------\n`]
         orders.forEach((item: Order) => {
-          console.log({ item })
           const createat = item.create_at
           if (createat instanceof Timestamp) {
             console.log(moment(createat.toDate()).format('LLLL'))
           }
           const strItems = [];
-          strItems.push(Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${numeral(item.amount_in).format('0,0')} ${item.token_in.symbol}/${item.token_out.symbol} id: ${Format.code(item.id || '')}\n🎯 Target price: ${item.target_price}\nStatus: ${item.is_filled ? `${emojs.checked} Filled` : `${emojs.pending} Pending`}\nActive: ${item.is_active ? `${emojs.yes} Yes` : `${emojs.yes} No`}\n`)
+          strItems.push(Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${numeral(item.amount_in).format('0,0')} ${item.token_in.symbol}/${item.token_out.symbol} id: ${Format.code(item.id || '')}\n🎯 Target price: ${item.target_price}\nStatus: ${item.is_filled ? `${emojs.checked} Filled` : `${emojs.pending} Pending`}\nActive: ${item.is_active ? `${emojs.yes} Yes` : `${emojs.no} No`}\n`)
           if (item.is_filled) {
             strItems.push(Format.fmt`Transaction: ${Format.link(item.transaction_hash || '', `${getExplorer(item.chain)}/tx/${item.transaction_hash || ''}`)}\n`)
           }
           strItems.push(Format.fmt`-------------------------------------\n`)
           items.push(Format.join(strItems))
         })
-        // if (loadingMsg && loadingMsg.message_id) {
-        //   await ctx.deleteMessage(loadingMsg.message_id).catch(e => console.log(e))
-        // }
         await ctx.reply(Format.join([title, ...items]), inlineWalletKeyboard)
       } else {
-        // if (loadingMsg && loadingMsg.message_id) {
-        //   await ctx.deleteMessage(loadingMsg.message_id).catch(e => console.log(e))
-        // }
-        await ctx.reply(`You don't have any order`)
+        await ctx.reply(`You don't have any order`, btnShowOrderMenus)
       }
     } else {
-      // if (loadingMsg && loadingMsg.message_id) {
-      //   await ctx.deleteMessage(loadingMsg.message_id).catch(e => console.log(e))
-      // }
-      await ctx.reply('User not found')
+      await ctx.reply('User not found', btnShowOrderMenus)
     }
   } else {
-    await ctx.reply('User not found')
+    await ctx.reply('User not found', btnShowOrderMenus)
   }
 }
 
@@ -81,8 +72,11 @@ export const getTemplate = async (ctx: Context) => {
   await ctx.reply("Select tempalte for: ", keyboards);
 }
 
-export const getTemplateAddOrder = async (ctx: Context) => {
-  await ctx.reply(Format.code(getAddOrderTemplate()));
+export const getTemplateAddOrder = async (ctx: BotContext) => {
+  deleteLastMessage(ctx)
+  return ctx.reply(Format.code(getAddOrderTemplate()), Markup.inlineKeyboard([
+    Markup.button.callback(`${emojs.back} Back`, 'show_order_menu')
+  ]));
 }
 
 const _getOrderMenus = (ctx: Context) => {

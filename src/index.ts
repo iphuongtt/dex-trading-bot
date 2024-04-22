@@ -1,11 +1,5 @@
-// import {Swap2} from "./jobs";
-// const swap = new Swap2();
-// swap.start();
-
+import { Swap2 } from "./jobs";
 import { startBot } from "./teleBot2";
-
-startBot()
-
-// import { start } from './testSchema'
-
-// start()
+const bot = startBot()
+const swap = new Swap2(bot);
+swap.do();
