@@ -12,6 +12,7 @@ export interface Token {
 export interface Order {
     id?: string;
     user_id: string;
+    wallet_id: string;
     chain: SupportedChain
     telegram_id: number;
     type: OrderType;

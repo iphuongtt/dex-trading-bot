@@ -2,11 +2,11 @@ import { Format, Markup, Scenes, Telegraf } from "telegraf";
 import { BotContext, cancelBtn } from "../context";
 import _ from 'lodash'
 import { isValidAddOrder } from "./schema";
-import { create, deleteDoc, getDoc, getServerTimeStamp, isExists, updateDoc } from "../../libs/firestore";
+import { create, deleteDoc, getDoc, getServerTimeStamp, incrementNumericValue, isExists, updateDoc } from "../../libs/firestore";
 import { Order } from "./model";
 import { isNumeric, removeUndefined } from "../../libs";
 import { emojs } from "../../libs/constants2";
-import { deleteLastMessage } from "../util";
+import { deleteLastMessage, isVIP } from "../util";
 import { leaveSceneEditOrderStep0, leaveSceneOrderStep0 } from "./command";
 
 const addOrderWizard = new Scenes.WizardScene<BotContext>(
@@ -18,7 +18,6 @@ const addOrderWizard = new Scenes.WizardScene<BotContext>(
   },
   async (ctx) => {
     if (ctx.message && "text" in ctx.message) {
-      // console.log(ctx.message.text)
       try {
         const orderData = JSON.parse(ctx.message.text);
         if (isValidAddOrder(orderData)) {
@@ -27,15 +26,19 @@ const addOrderWizard = new Scenes.WizardScene<BotContext>(
             await ctx.reply('User not found')
             return ctx.scene.leave()
           }
-          const user = await getDoc('users', null, [
+          const user: any = await getDoc('users', null, [
             { field: 'telegram_id', operation: '==', value: teleUser.id }
           ])
           if (!user) {
             await ctx.reply('User not found')
             return ctx.scene.leave()
           }
+          if (!isVIP(user) && user.count_orders > 0) {
+            await ctx.reply(`${emojs.error} You can create maximum 1 order. Please upgrade to VIP account`);
+            return ctx.scene.leave();
+          }
           //Check if the wallet address has been configured with the corresponding private key or not.
-          const walletAddress = _.get(orderData, 'wallet', null)
+          const walletAddress = _.get(orderData, 'wallet', null).toLowerCase()
           const wallet = await getDoc('wallets', null, [
             { field: 'wallet', operation: '==', value: walletAddress },
             { field: 'telegram_id', operation: '==', value: teleUser.id }
@@ -44,17 +47,15 @@ const addOrderWizard = new Scenes.WizardScene<BotContext>(
             await ctx.reply('Wallet not found')
             return ctx.scene.leave()
           }
-          const _pri = _.get(process.env, `WALLET_${wallet.id}_PRIVATE_KEY`)
-          if (!_pri) {
-            await ctx.reply('The wallet has not been configured with the corresponding private key')
-            return ctx.scene.leave()
-          }
           const newOrder: Order = {
             ...orderData,
+            wallet: walletAddress,
+            wallet_id: wallet.id,
             user_id: user.id,
             telegram_id: teleUser.id,
             create_at: getServerTimeStamp(),
             is_filled: false,
+            is_active: true,
             transaction_hash: null
           };
           const result = await create(
@@ -63,6 +64,7 @@ const addOrderWizard = new Scenes.WizardScene<BotContext>(
             removeUndefined(newOrder)
           );
           if (result) {
+            await incrementNumericValue("users", user.id, "count_orders")
             await ctx.reply(Format.fmt`Order added`);
           } else {
             await ctx.reply(Format.fmt`Order add error`);

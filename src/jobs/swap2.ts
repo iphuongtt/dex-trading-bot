@@ -14,17 +14,16 @@ export class Swap2 {
   }
 
   async executeTrade(order: Order) {
-    const { wallet, chain, target_price, amount_in, token_in, token_out, user_id, telegram_id, id } = order
+    const { wallet, chain, target_price, amount_in, token_in, token_out, user_id, telegram_id, id, wallet_id } = order
     if (!telegram_id) {
       return false
     }
-    if (!wallet || !chain || !target_price || !amount_in || !token_in || !token_out || !user_id || !id) {
+    if (!wallet || !chain || !target_price || !amount_in || !token_in || !token_out || !user_id || !id || !wallet_id) {
       this.bot.telegram.sendMessage(telegram_id, 'Order not valid')
       return false
     }
-    console.log({ order })
     try {
-      const userSwap = new UserSwap(id, chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
+      const userSwap = new UserSwap(id, wallet_id, chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
       const isOk = await userSwap.setup();
       if (isOk) {
         console.log('OK')

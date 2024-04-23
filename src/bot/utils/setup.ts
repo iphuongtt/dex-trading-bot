@@ -34,6 +34,9 @@ export const setupBot = (bot: Telegraf<BotContext>) => {
         last_name: teleUser.last_name,
         create_at: getServerTimeStamp(),
         is_admin: false,
+        is_vip: false,
+        count_orders: 0,
+        count_wallets: 0
       };
       create("users", null, removeUndefined(newUser)).then((result) => {
         console.log({ result });

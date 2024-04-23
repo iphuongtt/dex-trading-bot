@@ -10,5 +10,8 @@ export interface User {
     telegram_id: number;
     is_premium?: boolean;
     create_at: FieldValue;
-    is_admin: boolean
+    is_admin: boolean;
+    is_vip: boolean;
+    count_wallets: number;
+    count_orders: number
 }

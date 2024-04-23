@@ -1,6 +1,7 @@
 import { Context } from "telegraf"
 import { BotContext } from "./context"
-import { showWalletMenus } from "./wallets"
+import CryptoJS from 'crypto-js'
+import { User } from "./utils"
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -83,4 +84,32 @@ export const deleteLastMessage = async (ctx: Context) => {
   if (msgId) {
     return deleteMessage(ctx, msgId)
   }
+}
+
+export const encrypt = (telegram_id: number, txt: string): string => {
+  const _secret = process.env.TTP_EN_KEY
+  if (!_secret) {
+    throw new Error('Encrypt key not found')
+  }
+  if (!telegram_id) {
+    throw new Error('User id not found')
+  }
+  const key = `KEYKEYKEY${telegram_id}_${_secret}`
+  return CryptoJS.AES.encrypt(txt, key).toString()
+}
+
+export const decrypt = (telegram_id: number, code: string): string => {
+  const _secret = process.env.TTP_EN_KEY
+  if (!_secret) {
+    throw new Error('Encrypt key not found')
+  }
+  if (!telegram_id) {
+    throw new Error('User id not found')
+  }
+  const key = `KEYKEYKEY${telegram_id}_${_secret}`
+  return CryptoJS.AES.decrypt(code, key).toString(CryptoJS.enc.Utf8)
+}
+
+export const isVIP = (user: User): boolean => {
+  return user.is_vip || user.is_admin
 }

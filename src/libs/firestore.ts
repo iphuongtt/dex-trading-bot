@@ -8,8 +8,8 @@ import {
   Timestamp,
   WriteBatch,
 } from "firebase-admin/firestore";
-import { User } from "../models";
 import { firestore as fireStoreConfigs } from "../config";
+import { User } from "../bot/utils";
 
 admin.initializeApp({ credential: admin.credential.cert(fireStoreConfigs) });
 

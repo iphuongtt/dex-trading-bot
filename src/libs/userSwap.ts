@@ -26,9 +26,11 @@ import { convertTargetPrice } from "./conversion";
 import { Format, Telegraf } from "telegraf";
 import { BotContext } from "../bot";
 import { getExplorer } from "./constants2";
+import { decrypt } from "../bot/util";
 
 export class UserSwap {
   orderId: string;
+  walletId: string;
   chain: SupportedChain;
   chainId: ChainId;
   tokenIn: Token;
@@ -45,6 +47,7 @@ export class UserSwap {
 
   constructor(
     orderId: string,
+    walletId: string,
     chain: SupportedChain,
     tokenIn: OrderToken,
     tokenOut: OrderToken,
@@ -76,6 +79,7 @@ export class UserSwap {
       throw new Error("RPC not found");
     }
     this.orderId = orderId;
+    this.walletId = walletId;
     this.tokenInAmount = tokenInAmount;
     this.targetPrice = targetPrice;
     this.userId = userId;
@@ -103,39 +107,32 @@ export class UserSwap {
   }
 
   async setup(): Promise<boolean> {
-    const _wallet = await getDoc("wallets", null, [
-      {
-        field: "user_id",
-        operation: "==",
-        value: this.userId,
-      },
-      {
-        field: "wallet",
-        operation: "==",
-        value: this.walletAddress,
-      },
-    ]);
-    if (!_wallet) {
+    const _wallet: any = await getDoc("wallets", this.walletId).catch(e => {
+      console.log(e)
+    });
+    if (!_wallet || !_wallet.private_key) {
       return false;
     }
-    const _pri = _.get(process.env, `WALLET_${_wallet.id}_PRIVATE_KEY`);
-    console.log({_pri}  )
+    const _pri = decrypt(this.telegram_id, _wallet.private_key);
     if (!_pri) {
-      this.bot.telegram.sendMessage(this.telegram_id, "PRIVATE KEY NOT FOUND");
+      this.notify("PRIVATE KEY NOT FOUND")
       return false;
     }
     try {
       this.ethersSigner = new ethers.Wallet(_pri, this.ethersProvider);
     } catch (error) {
-      this.bot.telegram.sendMessage(this.telegram_id, "PRIVATE KEY INVALID");
+      this.notify("PRIVATE KEY INVALID")
       return false;
     }
 
     const balance = await this.getSwap2CurrencyBalance();
     const bigZero = JSBI.BigInt(0);
     if (JSBI.EQ(balance, bigZero)) {
+      this.notify(`No ${this.tokenIn.symbol} token in wallet ${this.walletAddress}, So the order will be deactived!`)
+      await updateDoc("orders", this.orderId, { is_active: false })
       return false;
     }
+    console.log(this.targetPrice)
     const bigTarget = JSBI.BigInt(
       convertTargetPrice(this.targetPrice, this.tokenOut.decimals)
     );
@@ -298,8 +295,6 @@ export class UserSwap {
       this.chainId
     );
 
-    console.log(JSON.stringify({ domain, types, values }));
-
     // create signature for permit
     const signature = await this.ethersSigner._signTypedData(
       domain,
@@ -360,7 +355,7 @@ export class UserSwap {
         gasUsed: receipt.gasUsed.toString(),
         logs: JSON.stringify(receipt.logs),
       });
-      await updateDoc("orders", this.orderId, { is_filled: true, transaction_hash: receipt.transactionHash})
+      await updateDoc("orders", this.orderId, { is_filled: true, transaction_hash: receipt.transactionHash })
       return true;
     } else {
       this.notify("Transaction error")

@@ -99,5 +99,10 @@ export const emojs = {
   target: '🎯',
   back: '🔙',
   close: '❌',
-  template: ''
+  template: '',
+  address: '🏘',
+  name: '🐊',
+  key: '🔑',
+  seed: '🌱',
+  error: '😭'
 }
