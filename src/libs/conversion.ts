@@ -28,6 +28,7 @@ function countDecimals(x: number) {
 
 export function convertTargetPrice(price: number, decimals: number): JSBI {
   const extraDigits = Math.pow(10, decimals)
-  const adjustedAmount = price * extraDigits
+  const adjustedAmount = Math.round(price * extraDigits)
+  // console.log('convertTargetPrice', { price, decimals, extraDigits, adjustedAmount })
   return JSBI.BigInt(adjustedAmount)
 }

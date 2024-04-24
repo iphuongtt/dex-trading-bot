@@ -132,7 +132,6 @@ export class UserSwap {
       await updateDoc("orders", this.orderId, { is_active: false })
       return false;
     }
-    console.log(this.targetPrice)
     const bigTarget = JSBI.BigInt(
       convertTargetPrice(this.targetPrice, this.tokenOut.decimals)
     );
@@ -335,6 +334,7 @@ export class UserSwap {
     };
 
     console.log({ txArguments });
+
     // send out swap transaction
     const swapTx = await this.ethersSigner.sendTransaction(txArguments);
     this.notify(Format.fmt`Swap tx hash: ${Format.link(

@@ -26,8 +26,7 @@ export class Swap2 {
       const userSwap = new UserSwap(id, wallet_id, chain, token_in, token_out, user_id, wallet, amount_in, target_price, this.bot, telegram_id)
       const isOk = await userSwap.setup();
       if (isOk) {
-        console.log('OK')
-        // userSwap.executeSwap()
+        userSwap.executeSwap()
       }
     } catch (error: any) {
       this.bot.telegram.sendMessage(telegram_id, error.message)
