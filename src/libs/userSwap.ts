@@ -1,4 +1,5 @@
 import { ethers, BigNumber } from "ethers";
+import {ethers as ethersNew} from 'ethers-new'
 import {
   PERMIT2_ADDRESS,
   AllowanceTransfer,
@@ -396,5 +397,36 @@ export class UserSwap {
       );
     }
     return null;
+  }
+
+  parseSwapLog(logs: object[], tokenIn: Token, tokenOut: Token) {
+    const swapEventTopic = ethersNew.id('Swap(address,address,int256,int256,uint160,uint128,int24)')
+    const swapLogs = logs.filter(log => {
+      if ('topics' in log && _.isArray(log.topics)) {
+        return log.topics[0] === swapEventTopic
+      }
+    });
+    // take the last swap event
+    const lastSwapEvent = swapLogs.slice(-1)[0]
+    // // decode the data
+    const swapInterface = new ethersNew.Interface('[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":true,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"int256","name":"amount0","type":"int256"},{"indexed":false,"internalType":"int256","name":"amount1","type":"int256"},{"indexed":false,"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"int24","name":"tick","type":"int24"}],"name":"Swap","type":"event"}]')
+    
+    if ('topics' in lastSwapEvent && 'data' in lastSwapEvent && lastSwapEvent.topics && _.isArray(lastSwapEvent.topics) && lastSwapEvent.data && _.isString(lastSwapEvent.data)) {
+      const parsed = swapInterface.parseLog({
+        topics: lastSwapEvent.topics,
+        data: lastSwapEvent.data,
+      });
+      const tokenInAmount = ethersNew.formatUnits(parsed?.args.amount1, tokenIn.decimals)
+      const tokenOutAmount = ethersNew.formatUnits(parsed?.args.amount0, tokenOut.decimals)
+      return {
+        tokenInAmount, tokenOutAmount
+      }
+    } else {
+      return false
+    }
+    // // use the non zero value
+    // const receivedTokens = parsed.args.amount0Out.isZero() ?  parsed.args.amount1Out : parsed.args.amount0Out;
+  
+  
   }
 }
