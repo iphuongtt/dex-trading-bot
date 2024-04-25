@@ -1,7 +1,6 @@
 import { Context, Format, Markup } from "telegraf";
 import { getDoc, getListDocs } from "../../libs/firestore";
 import { emojs, getExplorer } from "../../libs/constants2";
-import { Order } from "./model";
 import { Timestamp } from "firebase-admin/firestore";
 import moment from "moment";
 import numeral from "numeral";
@@ -9,6 +8,7 @@ import { getAddOrderTemplate } from "./schema";
 import _ from "lodash";
 import { BotContext } from "../context";
 import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
+import { Order } from "../../models";
 
 export const btnShowOrderMenus = Markup.inlineKeyboard([
   Markup.button.callback(`${emojs.back} Back`, 'show_order_menu')

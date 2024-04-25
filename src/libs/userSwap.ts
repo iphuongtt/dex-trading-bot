@@ -17,7 +17,6 @@ import {
 import { Permit2Permit } from "@uniswap/universal-router-sdk/dist/utils/inputTokens";
 import erc20Abi from "../tokenABI/erc20.json";
 import { Token as OrderToken } from "../bot/orders";
-import { SupportedChain } from "./types";
 import { getChainId, getChainRPC } from "./utils";
 import { getDoc, updateDoc } from "./firestore";
 import _ from "lodash";
@@ -28,6 +27,7 @@ import { Format, Telegraf } from "telegraf";
 import { BotContext } from "../bot";
 import { getExplorer } from "./constants2";
 import { decrypt } from "../bot/util";
+import { SupportedChain } from "../types";
 
 export class UserSwap {
   orderId: string;

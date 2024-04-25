@@ -1,16 +1,12 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { OrderType, SupportedChain } from "../libs/types";
+import { OrderType, SupportedChain } from "../types";
+import { Token } from "./token";
 
-export interface Token {
-    address: string;
-    decimals: number;
-    symbol: string;
-    name: string;
-}
 
 export interface Order {
     id?: string;
     user_id: string;
+    wallet_id: string;
     chain: SupportedChain
     telegram_id: number;
     type: OrderType;

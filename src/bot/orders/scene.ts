@@ -3,7 +3,6 @@ import { BotContext, cancelBtn, yesOrNoInlineKeyboard } from "../context";
 import _ from 'lodash'
 import { isValidAddOrder } from "./schema";
 import { create, deleteDoc, getDoc, getServerTimeStamp, incrementNumericValue, isExists, updateDoc } from "../../libs/firestore";
-import { Order } from "./model";
 import { isNumeric, removeUndefined } from "../../libs";
 import { emojs } from "../../libs/constants2";
 import { deleteLastMessage, getRoute, getTokenInfo, isVIP } from "../util";
@@ -12,6 +11,7 @@ import { OrderActions, OrderActionsName } from "./types";
 import { isAddress } from "ethers-new";
 import numeral from "numeral";
 import { ChainId, Token } from "@uniswap/sdk-core";
+import {Order, Token as TokenModel} from '../../models'
 
 const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
@@ -317,8 +317,13 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
       if (quoteTokenData && quoteTokenData.symbol && quoteTokenData.name && quoteTokenData.decimals) {
         ctx.scene.session.quoteTokenAddress = ctx.message.text
         ctx.scene.session.quoteTokenData = new Token(ctx.scene.session.addChainId, ctx.message.text, quoteTokenData.decimals, quoteTokenData.symbol, quoteTokenData.name)
-        await ctx.reply("Please select order Type", selectOrderTypeBtn);
-        return ctx.wizard.next();
+        const hasRoute = await getRoute(ctx.scene.session.baseTokenData, ctx.scene.session.quoteTokenData, 'base')
+        if (hasRoute) {
+          await ctx.reply("Please select order Type", selectOrderTypeBtn);
+          return ctx.wizard.next();
+        } else {
+          await ctx.reply(`${emojs.error} Route not found`);
+        }
       } else {
         await ctx.reply(`${emojs.error} Token address ${ctx.message.text} is not found`);
       }

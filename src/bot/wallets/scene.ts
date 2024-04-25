@@ -7,7 +7,6 @@ import {
   yesOrNoInlineKeyboard,
 } from "../context";
 import { ethers, isAddress } from "ethers-new";
-import { Wallet } from "./model";
 import {
   create,
   getDoc,
@@ -25,6 +24,7 @@ import {
   deleteWallet,
 } from "./command";
 import { emojs } from "../../libs/constants2";
+import { Wallet } from "../../models";
 
 const addWalletWizard = new Scenes.WizardScene<BotContext>(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene

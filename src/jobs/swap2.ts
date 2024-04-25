@@ -1,8 +1,8 @@
 import { UserSwap } from "../libs/userSwap";
 import { getListDocs } from "../libs/firestore";
-import { Order } from "../bot/orders";
 import { Telegraf } from "telegraf";
 import { BotContext } from "../bot";
+import { Order } from "../models";
 
 
 let cron = require("node-cron");

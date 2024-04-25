@@ -1,12 +1,12 @@
 import { Scenes, Telegraf, session } from "telegraf";
 import { BotContext } from "../context";
 import { create, getServerTimeStamp, isExists } from "../../libs/firestore";
-import { User } from "./model";
 import { removeUndefined } from "../../libs";
 import { backToMainMenu, clearHistory, getMenus } from "./command";
 import { orderScenes } from "../orders";
 import { walletScenes } from "../wallets";
 import { deleteLastMessage } from "../util";
+import { User } from "../../models";
 
 export const setupBot = (bot: Telegraf<BotContext>) => {
   const stage = new Scenes.Stage<BotContext>([

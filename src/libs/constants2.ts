@@ -3,7 +3,7 @@ import { Token, ChainId } from '@uniswap/sdk-core';
 import { SWAP_ROUTER_02_ADDRESSES } from '@uniswap/smart-order-router';
 import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
 import { chain } from 'lodash';
-import { SupportedChain } from './types';
+import { SupportedChain } from '../types';
 
 const wethMap: { [key: number]: string } = {
   [ChainId.MAINNET]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',

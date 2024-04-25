@@ -1,8 +1,6 @@
 import { Context } from "telegraf"
 import { BotContext } from "./context"
 import CryptoJS from 'crypto-js'
-import { User } from "./utils"
-import { SupportedChain } from "../libs/types"
 import { Alchemy, Network } from "alchemy-sdk";
 import { ethers as ethersNew } from "ethers-new"
 import { ethers } from "ethers";
@@ -16,6 +14,9 @@ import {
   SWAP_ROUTER_02_ADDRESSES,
 } from "@uniswap/sdk-core";
 import { getChainId, getChainRPC } from "../libs"
+import { getDoc, create } from "../libs/firestore"
+import { SupportedChain } from "../types";
+import { User, Token as TokenModel } from "../models";
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -149,17 +150,38 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
     default:
       break;
   }
+  const _chainId = getChainId(chain);
+  if (!_chainId) {
+    return null
+  }
   if (_apiKey && netWork) {
-    const config = {
-      apiKey: _apiKey,
-      network: netWork,
-    };
-    const alchemy = new Alchemy(config);
-    // The token address we want to query for metadata
-    const tokenMetaData = await alchemy.core.getTokenMetadata(
-      tokenAddress
-    )
-    return tokenMetaData
+    const token: any = await getDoc("tokens", null, [
+      {
+        field: 'address', operation: '==', value: tokenAddress
+      },
+      {
+        field: 'chain_id', operation: '==', value: _chainId
+      }
+    ])
+    console.log({token})
+    if (!token) {
+      const config = {
+        apiKey: _apiKey,
+        network: netWork,
+      };
+      const alchemy = new Alchemy(config);
+      // The token address we want to query for metadata
+      const tokenMetaData = await alchemy.core.getTokenMetadata(
+        tokenAddress
+      )
+      if (tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
+        await create('tokens', null, tokenMetaData)
+        return new TokenModel(tokenAddress, tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined)
+      }
+      return null
+    } else {
+      return new TokenModel(tokenAddress, token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined)
+    }
   }
   return null
 }

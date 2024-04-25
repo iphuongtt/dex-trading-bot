@@ -9,7 +9,7 @@ import {
   WriteBatch,
 } from "firebase-admin/firestore";
 import { firestore as fireStoreConfigs } from "../config";
-import { User } from "../bot/utils";
+import { User } from "../models";
 
 admin.initializeApp({ credential: admin.credential.cert(fireStoreConfigs) });
 
@@ -42,6 +42,7 @@ export interface Order {
 
 export type Collection =
   | "menus"
+  | "tokens"
   | "wallets"
   | "orders"
   | "users"

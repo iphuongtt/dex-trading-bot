@@ -1,6 +1,6 @@
 import { Scenes } from "telegraf";
-import { OrderType, SupportedChain } from "../../libs/types";
 import { ChainId, Token } from "@uniswap/sdk-core";
+import { OrderType, SupportedChain } from "../../types";
 
 export interface OrderSession extends Scenes.WizardSessionData {
     idOrderToEdit: string;
