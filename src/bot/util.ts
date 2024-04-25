@@ -2,6 +2,20 @@ import { Context } from "telegraf"
 import { BotContext } from "./context"
 import CryptoJS from 'crypto-js'
 import { User } from "./utils"
+import { SupportedChain } from "../libs/types"
+import { Alchemy, Network } from "alchemy-sdk";
+import { ethers as ethersNew } from "ethers-new"
+import { ethers } from "ethers";
+import { AlphaRouter, SwapType } from "@uniswap/smart-order-router";
+import {
+  CurrencyAmount,
+  TradeType,
+  Percent,
+  ChainId,
+  Token,
+  SWAP_ROUTER_02_ADDRESSES,
+} from "@uniswap/sdk-core";
+import { getChainId, getChainRPC } from "../libs"
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -112,4 +126,89 @@ export const decrypt = (telegram_id: number, code: string): string => {
 
 export const isVIP = (user: User): boolean => {
   return user.is_vip || user.is_admin
+}
+
+export const getACLAPIKey = (chain: SupportedChain): string | undefined => {
+  switch (chain) {
+    case 'base':
+      return process.env.ALC_BASE_KEY
+      break;
+    default:
+      break;
+  }
+  return undefined
+}
+
+export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) => {
+  const _apiKey = getACLAPIKey(chain)
+  let netWork = null
+  switch (chain) {
+    case 'base':
+      netWork = Network.BASE_MAINNET
+      break;
+    default:
+      break;
+  }
+  if (_apiKey && netWork) {
+    const config = {
+      apiKey: _apiKey,
+      network: netWork,
+    };
+    const alchemy = new Alchemy(config);
+    // The token address we want to query for metadata
+    const tokenMetaData = await alchemy.core.getTokenMetadata(
+      tokenAddress
+    )
+    return tokenMetaData
+  }
+  return null
+}
+
+
+export const getRoute = async (baseToken: Token, quoteToken: Token, chain: SupportedChain): Promise<boolean> => {
+  let chainId = null
+  if (chain) {
+    const _chainId = getChainId(chain);
+    if (_chainId) {
+      chainId = _chainId;
+    } else {
+      return false
+    }
+  } else {
+    return false
+  }
+  const _rpc = getChainRPC(chain);
+  if (!_rpc) {
+    return false
+  }
+  const amount = 1;
+  const ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
+  const amountInWei = ethers.utils.parseUnits(
+    amount.toString(),
+    baseToken.decimals
+  );
+  const inputAmount = CurrencyAmount.fromRawAmount(
+    baseToken,
+    amountInWei.toString()
+  );
+
+  const router = new AlphaRouter({
+    chainId,
+    provider: ethersProvider,
+  });
+  const route = await router.route(
+    inputAmount,
+    quoteToken,
+    TradeType.EXACT_INPUT,
+    {
+      recipient: '0x988Db88A91134C1F0704E3cEc110fe819F94CBe9',
+      slippageTolerance: new Percent(5, 1000),
+      type: SwapType.UNIVERSAL_ROUTER,
+      deadlineOrPreviousBlockhash: Math.floor(Date.now() / 1000 + 1800),
+    }
+  );
+  if (route) {
+    return true
+  }
+  return false;
 }

@@ -1,13 +1,17 @@
 import { Format, Markup, Scenes, Telegraf } from "telegraf";
-import { BotContext, cancelBtn } from "../context";
+import { BotContext, cancelBtn, yesOrNoInlineKeyboard } from "../context";
 import _ from 'lodash'
 import { isValidAddOrder } from "./schema";
 import { create, deleteDoc, getDoc, getServerTimeStamp, incrementNumericValue, isExists, updateDoc } from "../../libs/firestore";
 import { Order } from "./model";
 import { isNumeric, removeUndefined } from "../../libs";
 import { emojs } from "../../libs/constants2";
-import { deleteLastMessage, isVIP } from "../util";
+import { deleteLastMessage, getRoute, getTokenInfo, isVIP } from "../util";
 import { leaveSceneEditOrderStep0, leaveSceneOrderStep0 } from "./command";
+import { OrderActions, OrderActionsName } from "./types";
+import { isAddress } from "ethers-new";
+import numeral from "numeral";
+import { ChainId, Token } from "@uniswap/sdk-core";
 
 const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
@@ -266,6 +270,128 @@ const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
   },
 );
 
+
+
+
+
+
+
+
+
+const selectChainBtn = Markup.inlineKeyboard([
+  Markup.button.callback(OrderActionsName.select_chain_base, OrderActions.select_chain_base),
+]);
+
+const selectOrderTypeBtn = Markup.inlineKeyboard([
+  [Markup.button.callback(OrderActionsName.select_buy_order, OrderActions.select_buy_order)],
+  [Markup.button.callback(OrderActionsName.select_sell_order, OrderActions.select_sell_order)]
+]);
+
+const add2OrderWizard = new Scenes.WizardScene<BotContext>(
+  "add2OrderWizard",
+  async (ctx) => {
+    await deleteLastMessage(ctx);
+    await ctx.reply("Please select chain", selectChainBtn);
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text && isAddress(ctx.message.text)) {
+      const baseTokenData = await getTokenInfo(ctx.scene.session.addChain || 'base', ctx.message.text);
+      if (baseTokenData && baseTokenData.symbol && baseTokenData.name && baseTokenData.decimals) {
+        ctx.scene.session.baseTokenAddress = ctx.message.text
+        ctx.scene.session.baseTokenData = new Token(ctx.scene.session.addChainId, ctx.message.text, baseTokenData.decimals, baseTokenData.symbol, baseTokenData.name)
+        await ctx.reply("Please quote token address");
+        return ctx.wizard.next();
+      } else {
+        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} is not found`);
+      }
+    } else {
+      await ctx.reply(`${emojs.error} Token address is not valid`);
+    }
+    return ctx.scene.leave()
+  },
+
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text && isAddress(ctx.message.text)) {
+      const quoteTokenData = await getTokenInfo(ctx.scene.session.addChain || 'base', ctx.message.text);
+      if (quoteTokenData && quoteTokenData.symbol && quoteTokenData.name && quoteTokenData.decimals) {
+        ctx.scene.session.quoteTokenAddress = ctx.message.text
+        ctx.scene.session.quoteTokenData = new Token(ctx.scene.session.addChainId, ctx.message.text, quoteTokenData.decimals, quoteTokenData.symbol, quoteTokenData.name)
+        await ctx.reply("Please select order Type", selectOrderTypeBtn);
+        return ctx.wizard.next();
+      } else {
+        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} is not found`);
+      }
+    } else {
+      await ctx.reply(`${emojs.error} Token address is not valid`);
+    }
+    return ctx.scene.leave()
+  },
+
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text && isNumeric(ctx.message.text)) {
+      ctx.scene.session.baseTokenAmount = parseFloat(ctx.message.text)
+      await ctx.reply("Please target price");
+      return ctx.wizard.next();
+    } else {
+      await ctx.reply(`${emojs.error} Token amount is not valid number`);
+    }
+    return ctx.scene.leave()
+  },
+
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text && isNumeric(ctx.message.text)) {
+      ctx.scene.session.targetPrice = parseFloat(ctx.message.text)
+      const strItems = [
+        Format.bold('Are you sure?\n'),
+        Format.fmt`${emojs.order} ${_.upperFirst(ctx.scene.session.orderType)} ${numeral(ctx.scene.session.baseTokenAmount).format('0,0')} ${ctx.scene.session.baseTokenData.symbol || ''}/${ctx.scene.session.quoteTokenData.symbol || ''}\n`,
+        Format.fmt`${emojs.target} Target price: ${ctx.scene.session.targetPrice}`
+      ];
+      await ctx.reply(Format.join(strItems), yesOrNoInlineKeyboard);
+      return ctx.wizard.next();
+      console.log(ctx.scene.session)
+    } else {
+      await ctx.reply(`${emojs.error} Target price is not valid number`);
+    }
+    return ctx.scene.leave()
+  },
+
+);
+
+const add3OrderWizard = new Scenes.BaseScene<BotContext>('add3OrderWizard')
+add3OrderWizard.enter((ctx) => {
+  ctx.scene.session.addChain = null
+  return ctx.reply("Please select chain", selectChainBtn);
+});
+
+add2OrderWizard.action(OrderActions.select_chain_base, async (ctx: BotContext) => {
+  console.log('select_chain_base')
+  ctx.scene.session.addChain = 'base'
+  ctx.scene.session.addChainId = ChainId.BASE
+  return ctx.reply("Please base token address");
+})
+
+add2OrderWizard.action(OrderActions.select_buy_order, async (ctx: BotContext) => {
+  ctx.scene.session.orderType = 'buy'
+  return ctx.reply("Please enter amount token");
+})
+
+add2OrderWizard.action(OrderActions.select_sell_order, async (ctx: BotContext) => {
+  ctx.scene.session.orderType = 'sell'
+  return ctx.reply("Please enter amount token");
+})
+
+
+
+
+
+
+
+
+
+
+
+
 deleteOrderWizard.action("leave", async (ctx) => {
   let msgId = null
   if (ctx.callbackQuery.message?.message_id) {
@@ -316,11 +442,16 @@ editOrderStatusWizard.action("leave", leaveSceneEditOrderStep0)
 deleteOrderWizard.action("leave", leaveSceneOrderStep0)
 
 
+
+
+
 export const orderScenes = [
   addOrderWizard,
   getTemplateWizard,
   editOrderPriceWizard,
   editOrderAmountWizard,
   editOrderStatusWizard,
-  deleteOrderWizard
+  deleteOrderWizard,
+  add2OrderWizard,
+  add3OrderWizard
 ]

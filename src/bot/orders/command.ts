@@ -33,6 +33,7 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
       if (orders && orders.length > 0) {
         const inlineWalletKeyboard = Markup.inlineKeyboard([
           Markup.button.callback(`${emojs.add} Add`, 'add_order'),
+          Markup.button.callback(`${emojs.add} Add 2`, 'add_2_order'),
           Markup.button.callback(`${emojs.edit} Edit`, 'edit_order'),
           Markup.button.callback(`${emojs.del} Del`, 'delete_order'),
           Markup.button.callback(emojs.refresh, 'refresh_my_orders'),
@@ -83,6 +84,7 @@ const _getOrderMenus = (ctx: Context) => {
   return ctx.reply(`${emojs.order} Order menu`, Markup.inlineKeyboard([
     [Markup.button.callback(`${emojs.order} My orders`, 'get_my_orders'), Markup.button.callback(`${emojs.template} Get template`, 'get_template')],
     [Markup.button.callback(`${emojs.add} Add order`, 'add_order'), Markup.button.callback(`${emojs.edit} Edit order`, 'edit_order')],
+    [Markup.button.callback(`${emojs.add} Add order 2`, 'add_2_order')],
     [Markup.button.callback(`${emojs.del} Del order`, 'delete_order'), Markup.button.callback(`${emojs.back} Back`, 'back_to_main_menu')]
   ]))
 }

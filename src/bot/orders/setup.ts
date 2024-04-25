@@ -17,6 +17,7 @@ export const setupOrder = (bot: Telegraf<BotContext>) => {
   bot.hears("🦄 Orders", getOrderMenus);
   //Bot Actions
   bot.action("add_order", async (ctx) => ctx.scene.enter("addOrderWizard"));
+  bot.action("add_2_order", async (ctx) => ctx.scene.enter("add2OrderWizard"))
   bot.action("edit_order", editOrder);
   bot.action("delete_order", async (ctx) =>
     ctx.scene.enter("deleteOrderWizard")
