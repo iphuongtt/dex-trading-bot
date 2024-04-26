@@ -19,6 +19,7 @@ export class Token {
     chain: SupportedChain,
     chain_id: ChainId,
     logo?: string,
+    id?: string
   ) {
     this.address = address
     this.decimals = decimals
@@ -28,6 +29,9 @@ export class Token {
     this.chain_id = chain_id
     if (logo) {
       this.logo = logo
+    }
+    if (id) {
+      this.id = id
     }
   }
 }

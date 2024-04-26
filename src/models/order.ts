@@ -11,12 +11,12 @@ export interface Order {
     telegram_id: number;
     type: OrderType;
     wallet: string;
-    token_in: Token;
-    token_out: Token;
-    amount_in: number;
+    base_token: Token;
+    quote_token: Token;
+    amount: number;
     target_price: number;
-    transaction_hash?: string;
-    is_filled?: boolean;
+    transaction_hash: string | null;
+    is_filled: boolean;
     create_at: FieldValue;
     is_active: boolean;
 }

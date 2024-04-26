@@ -1,5 +1,5 @@
 import { ethers, BigNumber } from "ethers";
-import {ethers as ethersNew} from 'ethers-new'
+import { ethers as ethersNew } from 'ethers-new'
 import {
   PERMIT2_ADDRESS,
   AllowanceTransfer,
@@ -16,7 +16,7 @@ import {
 } from "@uniswap/sdk-core";
 import { Permit2Permit } from "@uniswap/universal-router-sdk/dist/utils/inputTokens";
 import erc20Abi from "../tokenABI/erc20.json";
-import { Token as OrderToken } from "../bot/orders";
+import { Token as OrderToken } from "../models";
 import { getChainId, getChainRPC } from "./utils";
 import { getDoc, updateDoc } from "./firestore";
 import _ from "lodash";
@@ -410,7 +410,7 @@ export class UserSwap {
     const lastSwapEvent = swapLogs.slice(-1)[0]
     // // decode the data
     const swapInterface = new ethersNew.Interface('[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":true,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"int256","name":"amount0","type":"int256"},{"indexed":false,"internalType":"int256","name":"amount1","type":"int256"},{"indexed":false,"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"int24","name":"tick","type":"int24"}],"name":"Swap","type":"event"}]')
-    
+
     if ('topics' in lastSwapEvent && 'data' in lastSwapEvent && lastSwapEvent.topics && _.isArray(lastSwapEvent.topics) && lastSwapEvent.data && _.isString(lastSwapEvent.data)) {
       const parsed = swapInterface.parseLog({
         topics: lastSwapEvent.topics,
@@ -426,7 +426,7 @@ export class UserSwap {
     }
     // // use the non zero value
     // const receivedTokens = parsed.args.amount0Out.isZero() ?  parsed.args.amount1Out : parsed.args.amount0Out;
-  
-  
+
+
   }
 }

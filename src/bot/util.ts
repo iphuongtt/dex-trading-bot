@@ -14,7 +14,7 @@ import {
   SWAP_ROUTER_02_ADDRESSES,
 } from "@uniswap/sdk-core";
 import { getChainId, getChainRPC } from "../libs"
-import { getDoc, create } from "../libs/firestore"
+import { getDoc, create, getDocRef } from "../libs/firestore"
 import { SupportedChain } from "../types";
 import { User, Token as TokenModel } from "../models";
 
@@ -163,7 +163,6 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
         field: 'chain_id', operation: '==', value: _chainId
       }
     ])
-    console.log({token})
     if (!token) {
       const config = {
         apiKey: _apiKey,
@@ -175,33 +174,39 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
         tokenAddress
       )
       if (tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
-        await create('tokens', null, tokenMetaData)
-        return new TokenModel(tokenAddress, tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined)
+        const _tokenRef = getDocRef("tokens");
+        await create('tokens', _tokenRef.id, {
+          ...tokenMetaData,
+          chain_id: _chainId,
+          address: tokenAddress,
+          chain
+        })
+        return new TokenModel(tokenAddress, tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined, _tokenRef.id)
       }
       return null
     } else {
-      return new TokenModel(tokenAddress, token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined)
+      return new TokenModel(tokenAddress, token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined, token.id)
     }
   }
   return null
 }
 
 
-export const getRoute = async (baseToken: Token, quoteToken: Token, chain: SupportedChain): Promise<boolean> => {
+export const getRoute = async (baseToken: TokenModel, quoteToken: TokenModel, chain: SupportedChain) => {
   let chainId = null
   if (chain) {
     const _chainId = getChainId(chain);
     if (_chainId) {
       chainId = _chainId;
     } else {
-      return false
+      return null
     }
   } else {
-    return false
+    return null
   }
   const _rpc = getChainRPC(chain);
   if (!_rpc) {
-    return false
+    return null
   }
   const amount = 1;
   const ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
@@ -209,8 +214,9 @@ export const getRoute = async (baseToken: Token, quoteToken: Token, chain: Suppo
     amount.toString(),
     baseToken.decimals
   );
+  const _baseToken = new Token(chainId, baseToken.address, baseToken.decimals, baseToken.symbol, baseToken.name)
   const inputAmount = CurrencyAmount.fromRawAmount(
-    baseToken,
+    _baseToken,
     amountInWei.toString()
   );
 
@@ -218,9 +224,11 @@ export const getRoute = async (baseToken: Token, quoteToken: Token, chain: Suppo
     chainId,
     provider: ethersProvider,
   });
+
+  const _quoteToken = new Token(chainId, quoteToken.address, quoteToken.decimals, quoteToken.symbol, quoteToken.name)
   const route = await router.route(
     inputAmount,
-    quoteToken,
+    _quoteToken,
     TradeType.EXACT_INPUT,
     {
       recipient: '0x988Db88A91134C1F0704E3cEc110fe819F94CBe9',
@@ -230,7 +238,65 @@ export const getRoute = async (baseToken: Token, quoteToken: Token, chain: Suppo
     }
   );
   if (route) {
-    return true
+    const routePath = route.route
+      .map((r) => r.tokenPath.map((t) => t.symbol).join(' -> '))
+      .join(', ')
+    // console.log('Swap: ', `Route: ${amount} ${baseToken.symbol
+    //   } to ${route.quote.toExact()} ${route.quote.currency.symbol
+    //   } using $${route.estimatedGasUsedUSD.toExact()} worth of gas`)
+    return {
+      path: routePath,
+      price: route.quote.toExact()
+    }
   }
-  return false;
+  return null;
+}
+
+
+export const getChain = (_chain: string) => {
+  let chain: SupportedChain | null = null
+  let chainId: ChainId | null = null
+  switch (_chain) {
+    case 'base':
+      chain = 'base'
+      chainId = ChainId.BASE
+      break;
+    case 'mainnet':
+      chain = 'mainnet'
+      chainId = ChainId.MAINNET
+      break;
+    case 'arbitrum_one':
+      chain = 'arbitrum_one'
+      chainId = ChainId.ARBITRUM_ONE
+      break;
+    case 'optimism':
+      chain = 'optimism'
+      chainId = ChainId.OPTIMISM
+      break;
+    case 'bnb':
+      chain = 'bnb'
+      chainId = ChainId.BNB
+      break;
+    case 'zora':
+      chain = 'zora'
+      chainId = ChainId.ZORA
+      break;
+    case 'blast':
+      chain = 'blast'
+      chainId = ChainId.BLAST
+      break;
+    case 'polygon':
+      chain = 'polygon'
+      chainId = ChainId.POLYGON
+      break;
+    default:
+      break;
+  }
+  if (chain && chainId) {
+    return {
+      chain, chainId
+    }
+  } else {
+    return null
+  }
 }

@@ -1,7 +1,7 @@
 import { ChainId, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade } from '@uniswap/v3-sdk'
 import { BigNumber, ethers } from 'ethers'
-import { SupportedChain } from './types'
+import { SupportedChain } from '../types'
 
 const MAX_DECIMALS = 4
 

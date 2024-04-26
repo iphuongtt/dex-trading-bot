@@ -2,16 +2,17 @@ import { Format, Markup, Scenes, Telegraf } from "telegraf";
 import { BotContext, cancelBtn, yesOrNoInlineKeyboard } from "../context";
 import _ from 'lodash'
 import { isValidAddOrder } from "./schema";
-import { create, deleteDoc, getDoc, getServerTimeStamp, incrementNumericValue, isExists, updateDoc } from "../../libs/firestore";
+import { create, deleteDoc, getDoc, getListDocs, getServerTimeStamp, incrementNumericValue, isExists, updateDoc } from "../../libs/firestore";
 import { isNumeric, removeUndefined } from "../../libs";
-import { emojs } from "../../libs/constants2";
-import { deleteLastMessage, getRoute, getTokenInfo, isVIP } from "../util";
-import { leaveSceneEditOrderStep0, leaveSceneOrderStep0 } from "./command";
+import { emojs, getExplorer } from "../../libs/constants2";
+import { deleteLastMessage, getChain, getRoute, getTokenInfo, isVIP } from "../util";
+import { confirmAddOrder, leaveSceneEditOrderStep0, leaveSceneOrderStep0 } from "./command";
 import { OrderActions, OrderActionsName } from "./types";
 import { isAddress } from "ethers-new";
 import numeral from "numeral";
 import { ChainId, Token } from "@uniswap/sdk-core";
-import {Order, Token as TokenModel} from '../../models'
+import { Order, Token as TokenModel, Wallet } from '../../models'
+import { supportedChains } from "../../types";
 
 const addOrderWizard = new Scenes.WizardScene<BotContext>(
   "addOrderWizard",
@@ -270,28 +271,53 @@ const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
   },
 );
 
+const selectChainBtn = () => {
+  const btns = []
+  for (const _chain of supportedChains) {
+    btns.push([Markup.button.callback(`${_.toUpper(_chain)}`, `select_chain_${_chain}`)],)
+  }
+  return Markup.inlineKeyboard(btns)
+}
 
+const selectOrderTypeBtn = (pair: string) => {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(`${emojs.buy} ${OrderActionsName.select_buy_order} ${pair}`, OrderActions.select_buy_order)],
+    [Markup.button.callback(`${emojs.sell} ${OrderActionsName.select_sell_order} ${pair}`, OrderActions.select_sell_order)]
+  ])
+}
 
-
-
-
-
-
-
-const selectChainBtn = Markup.inlineKeyboard([
-  Markup.button.callback(OrderActionsName.select_chain_base, OrderActions.select_chain_base),
-]);
-
-const selectOrderTypeBtn = Markup.inlineKeyboard([
-  [Markup.button.callback(OrderActionsName.select_buy_order, OrderActions.select_buy_order)],
-  [Markup.button.callback(OrderActionsName.select_sell_order, OrderActions.select_sell_order)]
-]);
+const selectWalletBtn = (wallets: Wallet[]) => {
+  const btns = []
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([Markup.button.callback(`${emojs.address} ${wallets[i].wallet}`, `select_wallet_${wallets[i].wallet}`)],)
+  }
+  return Markup.inlineKeyboard(btns)
+}
 
 const add2OrderWizard = new Scenes.WizardScene<BotContext>(
   "add2OrderWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await ctx.reply("Please select chain", selectChainBtn);
+    const teleUser = ctx.from
+    if (!teleUser) {
+      await ctx.reply('User not found')
+      return ctx.scene.leave()
+    }
+    const user: any = await getDoc('users', null, [
+      { field: 'telegram_id', operation: '==', value: teleUser.id }
+    ])
+    if (!user) {
+      await ctx.reply('User not found')
+      return ctx.scene.leave()
+    }
+    const wallets = await getListDocs("wallets", [
+      { field: "user_id", operation: "==", value: user.id },
+    ]);
+    if (!wallets || wallets.length < 0) {
+      await ctx.reply('Wallet not found')
+      return ctx.scene.leave()
+    }
+    await ctx.reply("Please select the wallet", selectWalletBtn(wallets));
     return ctx.wizard.next();
   },
   async (ctx) => {
@@ -299,14 +325,14 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
       const baseTokenData = await getTokenInfo(ctx.scene.session.addChain || 'base', ctx.message.text);
       if (baseTokenData && baseTokenData.symbol && baseTokenData.name && baseTokenData.decimals) {
         ctx.scene.session.baseTokenAddress = ctx.message.text
-        ctx.scene.session.baseTokenData = new Token(ctx.scene.session.addChainId, ctx.message.text, baseTokenData.decimals, baseTokenData.symbol, baseTokenData.name)
-        await ctx.reply("Please quote token address");
+        ctx.scene.session.baseTokenData = baseTokenData//new Token(ctx.scene.session.addChainId, ctx.message.text, baseTokenData.decimals, baseTokenData.symbol, baseTokenData.name)
+        await ctx.reply("Please enter the quote token address (Base/Quote)");
         return ctx.wizard.next();
       } else {
-        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} is not found`);
+        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} not found`);
       }
     } else {
-      await ctx.reply(`${emojs.error} Token address is not valid`);
+      await ctx.reply(`${emojs.error} The token address is not in a valid format`);
     }
     return ctx.scene.leave()
   },
@@ -316,19 +342,23 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
       const quoteTokenData = await getTokenInfo(ctx.scene.session.addChain || 'base', ctx.message.text);
       if (quoteTokenData && quoteTokenData.symbol && quoteTokenData.name && quoteTokenData.decimals) {
         ctx.scene.session.quoteTokenAddress = ctx.message.text
-        ctx.scene.session.quoteTokenData = new Token(ctx.scene.session.addChainId, ctx.message.text, quoteTokenData.decimals, quoteTokenData.symbol, quoteTokenData.name)
-        const hasRoute = await getRoute(ctx.scene.session.baseTokenData, ctx.scene.session.quoteTokenData, 'base')
-        if (hasRoute) {
-          await ctx.reply("Please select order Type", selectOrderTypeBtn);
+        ctx.scene.session.quoteTokenData = quoteTokenData//new Token(ctx.scene.session.addChainId, ctx.message.text, quoteTokenData.decimals, quoteTokenData.symbol, quoteTokenData.name)
+        await ctx.reply(`${emojs.loading} Getting the route for swapping ${ctx.scene.session.baseTokenData.symbol} <-> ${ctx.scene.session.quoteTokenData.symbol}. Please wait...`)
+        const route = await getRoute(ctx.scene.session.baseTokenData, ctx.scene.session.quoteTokenData, 'base')
+        if (route) {
+          ctx.scene.session.routePath = route.path
+          ctx.scene.session.currentPrice = route.price
+          await ctx.reply(`Route found: ${route.path}`)
+          await ctx.reply("Please select order Type", selectOrderTypeBtn(`${ctx.scene.session.baseTokenData.symbol}/${ctx.scene.session.quoteTokenData.symbol}`));
           return ctx.wizard.next();
         } else {
           await ctx.reply(`${emojs.error} Route not found`);
         }
       } else {
-        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} is not found`);
+        await ctx.reply(`${emojs.error} Token address ${ctx.message.text} not found`);
       }
     } else {
-      await ctx.reply(`${emojs.error} Token address is not valid`);
+      await ctx.reply(`${emojs.error} The token address is not in a valid format`);
     }
     return ctx.scene.leave()
   },
@@ -336,10 +366,10 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
   async (ctx) => {
     if (ctx.message && "text" in ctx.message && ctx.message.text && isNumeric(ctx.message.text)) {
       ctx.scene.session.baseTokenAmount = parseFloat(ctx.message.text)
-      await ctx.reply("Please target price");
+      await ctx.reply(Format.fmt`Please enter the target price at which you want to ${ctx.scene.session.orderType} ${ctx.scene.session.baseTokenData.symbol}/${ctx.scene.session.quoteTokenData.symbol}? Current price is: ${Format.code(ctx.scene.session.currentPrice.toString())}`);
       return ctx.wizard.next();
     } else {
-      await ctx.reply(`${emojs.error} Token amount is not valid number`);
+      await ctx.reply(`${emojs.error} Token amount is not a valid number`);
     }
     return ctx.scene.leave()
   },
@@ -347,16 +377,26 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
   async (ctx) => {
     if (ctx.message && "text" in ctx.message && ctx.message.text && isNumeric(ctx.message.text)) {
       ctx.scene.session.targetPrice = parseFloat(ctx.message.text)
+      const estQuoteAmount = ctx.scene.session.baseTokenAmount * ctx.scene.session.targetPrice
+      // console.log(ctx.scene.session)
       const strItems = [
-        Format.bold('Are you sure?\n'),
-        Format.fmt`${emojs.order} ${_.upperFirst(ctx.scene.session.orderType)} ${numeral(ctx.scene.session.baseTokenAmount).format('0,0')} ${ctx.scene.session.baseTokenData.symbol || ''}/${ctx.scene.session.quoteTokenData.symbol || ''}\n`,
-        Format.fmt`${emojs.target} Target price: ${ctx.scene.session.targetPrice}`
+        Format.bold('Are you sure you want to create the order?\n'),
+        Format.fmt`${emojs.network} Network: ${ctx.scene.session.addChain ? ctx.scene.session.addChain.toUpperCase() : ''}\n`,
+        Format.fmt`${emojs.address} Wallet: ${Format.link(ctx.scene.session.addOrderWallet, `${getExplorer(ctx.scene.session.addChain || 'base')}/address/${ctx.scene.session.addOrderWallet}`)}\n`,
+        Format.fmt`${emojs.route} Route: ${ctx.scene.session.routePath}\n`,
+        Format.fmt`${emojs.order} To ${ctx.scene.session.orderType} ${numeral(ctx.scene.session.baseTokenAmount).format('0,0')} ${Format.link(ctx.scene.session.baseTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.baseTokenData.address || ''}`)} ${ctx.scene.session.orderType === 'buy' ? 'with' : 'for'} ${Format.link(ctx.scene.session.quoteTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.quoteTokenData.address || ''}`)}\n`,
+        Format.fmt`${emojs.target} Current price ${Format.link(ctx.scene.session.baseTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.baseTokenData.address || ''}`)}/${Format.link(ctx.scene.session.quoteTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.quoteTokenData.address || ''}`)}: ${Format.code(ctx.scene.session.currentPrice.toString())}\n`,
+        Format.fmt`${emojs.target} Target price ${Format.link(ctx.scene.session.baseTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.baseTokenData.address || ''}`)}/${Format.link(ctx.scene.session.quoteTokenData.symbol || '', `${getExplorer(ctx.scene.session.addChain || 'base')}/token/${ctx.scene.session.quoteTokenData.address || ''}`)}: ${Format.code(ctx.scene.session.targetPrice)}\n`,
       ];
+      if (ctx.scene.session.orderType === 'buy') {
+        strItems.push(Format.fmt`${emojs.target} Expected cost: ${Format.code(estQuoteAmount)} ${ctx.scene.session.quoteTokenData.symbol || ''}`)
+      } else if (ctx.scene.session.orderType === 'sell') {
+        strItems.push(Format.fmt`${emojs.target} Expected to receive: ${Format.code(estQuoteAmount)} ${ctx.scene.session.quoteTokenData.symbol || ''}`)
+      }
       await ctx.reply(Format.join(strItems), yesOrNoInlineKeyboard);
       return ctx.wizard.next();
-      console.log(ctx.scene.session)
     } else {
-      await ctx.reply(`${emojs.error} Target price is not valid number`);
+      await ctx.reply(`${emojs.error} Target price is not a valid number`);
     }
     return ctx.scene.leave()
   },
@@ -366,26 +406,46 @@ const add2OrderWizard = new Scenes.WizardScene<BotContext>(
 const add3OrderWizard = new Scenes.BaseScene<BotContext>('add3OrderWizard')
 add3OrderWizard.enter((ctx) => {
   ctx.scene.session.addChain = null
-  return ctx.reply("Please select chain", selectChainBtn);
+  return ctx.reply("Please select chain", selectChainBtn());
 });
 
-add2OrderWizard.action(OrderActions.select_chain_base, async (ctx: BotContext) => {
-  console.log('select_chain_base')
-  ctx.scene.session.addChain = 'base'
-  ctx.scene.session.addChainId = ChainId.BASE
-  return ctx.reply("Please base token address");
+add2OrderWizard.action(/select_wallet_[a-zA-Z0-9]+/, async (ctx) => {
+  const _math = ctx.match[0]
+  const _wallet = _.replace(_math, 'select_wallet_', '')
+  ctx.scene.session.addOrderWallet = _wallet
+  await ctx.reply("Please select chain", selectChainBtn());
+})
+
+add2OrderWizard.action(/select_chain_[a-z]+/, async (ctx) => {
+  const _math = ctx.match[0]
+  const _chain = _.replace(_math, 'select_chain_', '')
+  const chainInfo = getChain(_chain)
+  if (chainInfo) {
+    ctx.scene.session.addChain = chainInfo.chain
+    ctx.scene.session.addChainId = chainInfo.chainId
+    return ctx.reply("Please enter the base token address (Base/Quote)");
+  } else {
+    await ctx.reply(`The chain ${_chain} is not supported`);
+    ctx.scene.leave()
+  }
 })
 
 add2OrderWizard.action(OrderActions.select_buy_order, async (ctx: BotContext) => {
   ctx.scene.session.orderType = 'buy'
-  return ctx.reply("Please enter amount token");
+  return ctx.reply(`Please enter the amount of ${ctx.scene.session.baseTokenData.symbol} you want to buy:`);
 })
 
 add2OrderWizard.action(OrderActions.select_sell_order, async (ctx: BotContext) => {
   ctx.scene.session.orderType = 'sell'
-  return ctx.reply("Please enter amount token");
+  return ctx.reply(`Please enter the amount of ${ctx.scene.session.baseTokenData.symbol} you want to sell:`);
 })
 
+add2OrderWizard.action('yes', confirmAddOrder)
+add2OrderWizard.action('no', async (ctx: BotContext) => {
+  ctx.scene.reset()
+  await ctx.reply("Canceled");
+  ctx.scene.leave()
+})
 
 
 
@@ -445,10 +505,6 @@ editOrderPriceWizard.action("leave", leaveSceneEditOrderStep0)
 editOrderAmountWizard.action("leave", leaveSceneEditOrderStep0)
 editOrderStatusWizard.action("leave", leaveSceneEditOrderStep0)
 deleteOrderWizard.action("leave", leaveSceneOrderStep0)
-
-
-
-
 
 export const orderScenes = [
   addOrderWizard,

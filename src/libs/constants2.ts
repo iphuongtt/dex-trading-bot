@@ -19,6 +19,11 @@ export const explorerMap: { [key: number]: string } = {
   [ChainId.OPTIMISM]: 'https://optimistic.etherscan.io',
   [ChainId.ARBITRUM_ONE]: 'https://arbiscan.io',
   [ChainId.BASE]: 'https://basescan.org',
+  [ChainId.BNB]: 'https://bscscan.com',
+  [ChainId.ZORA]: 'https://explorer.zora.energy',
+  [ChainId.BLAST]: 'https://blastscan.io',
+  [ChainId.POLYGON]: 'https://polygonscan.com',
+
 }
 
 export const walletAddress = process.env.WALLET_ADDRESS;
@@ -104,5 +109,10 @@ export const emojs = {
   name: '🐊',
   key: '🔑',
   seed: '🌱',
-  error: '😭'
+  error: '😭',
+  loading: '🏃‍♂️',
+  network: '🌎',
+  route: '📍',
+  buy: '➕',
+  sell: '➖'
 }
