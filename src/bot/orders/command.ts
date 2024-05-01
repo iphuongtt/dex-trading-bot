@@ -1,5 +1,5 @@
 import { Context, Format, Markup } from "telegraf";
-import { create, getDoc, getListDocs, getServerTimeStamp, incrementNumericValue } from "../../libs/firestore";
+import { create, deleteDoc, getDoc, getListDocs, getServerTimeStamp, incrementNumericValue, updateDoc } from "../../libs/firestore";
 import { emojs, getExplorer } from "../../libs/constants2";
 import { Timestamp } from "firebase-admin/firestore";
 import moment from "moment";
@@ -33,10 +33,7 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
       ])
       if (orders && orders.length > 0) {
         const inlineWalletKeyboard = Markup.inlineKeyboard([
-          Markup.button.callback(`${emojs.add} Add`, 'add_order'),
-          Markup.button.callback(`${emojs.add} Add 2`, 'add_2_order'),
-          Markup.button.callback(`${emojs.edit} Edit`, 'edit_order'),
-          Markup.button.callback(`${emojs.del} Del`, 'delete_order'),
+          Markup.button.callback(`${emojs.add} Add new`, 'add_2_order'),
           Markup.button.callback(emojs.refresh, 'refresh_my_orders'),
         ])
         const title = Format.bold('Your orders are:\n')
@@ -46,11 +43,19 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
           if (createat instanceof Timestamp) {
             console.log(moment(createat.toDate()).format('LLLL'))
           }
-          const strItems = [];
-          strItems.push(Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${numeral(item.base_token).format('0,0')} ${item.base_token.symbol}/${item.quote_token.symbol} id: ${Format.code(item.id || '')}\n🎯 Target price: ${item.target_price}\nStatus: ${item.is_filled ? `${emojs.checked} Filled` : `${emojs.pending} Pending`}\nActive: ${item.is_active ? `${emojs.yes} Yes` : `${emojs.no} No`}\n`)
+          const strItems = [
+            Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${numeral(item.base_token).format('0,0')} ${item.base_token.symbol}/${item.quote_token.symbol}\n`,
+            Format.fmt`🎯 Target price: ${item.target_price}\n`,
+            Format.fmt`Status: ${item.is_filled ? `${emojs.checked} Filled` : `${emojs.pending} Pending`}\n`,
+            Format.fmt`Active: ${item.is_active ? `${emojs.yes} Yes` : `${emojs.no} No`}\n`
+          ];
           if (item.is_filled) {
             strItems.push(Format.fmt`Transaction: ${Format.link(item.transaction_hash || '', `${getExplorer(item.chain)}/tx/${item.transaction_hash || ''}`)}\n`)
           }
+          strItems.push(Format.fmt`${emojs.edit} Change target price: /edit_target_price_ord_${item.id || ''}\n`)
+          strItems.push(Format.fmt`${emojs.edit} Change status: /edit_status_ord_${item.id || ''}\n`)
+          strItems.push(Format.fmt`${emojs.edit} Change amount: /edit_amount_ord_${item.id || ''}\n`)
+          strItems.push(Format.fmt`${emojs.del} Delete: /delete_ord_${item.id || ''}\n`)
           strItems.push(Format.fmt`-------------------------------------\n`)
           items.push(Format.join(strItems))
         })
@@ -83,10 +88,8 @@ export const getTemplateAddOrder = async (ctx: BotContext) => {
 
 const _getOrderMenus = (ctx: Context) => {
   return ctx.reply(`${emojs.order} Order menu`, Markup.inlineKeyboard([
-    [Markup.button.callback(`${emojs.order} My orders`, 'get_my_orders'), Markup.button.callback(`${emojs.template} Get template`, 'get_template')],
-    [Markup.button.callback(`${emojs.add} Add order`, 'add_order'), Markup.button.callback(`${emojs.edit} Edit order`, 'edit_order')],
-    [Markup.button.callback(`${emojs.add} Add order 2`, 'add_2_order')],
-    [Markup.button.callback(`${emojs.del} Del order`, 'delete_order'), Markup.button.callback(`${emojs.back} Back`, 'back_to_main_menu')]
+    [Markup.button.callback(`${emojs.order} My orders`, 'get_my_orders'), Markup.button.callback(`${emojs.add} Add order 2`, 'add_2_order')],
+    [Markup.button.callback(`${emojs.back} Back`, 'back_to_main_menu')]
   ]))
 }
 
@@ -235,7 +238,6 @@ export const confirmAddOrder = async (ctx: BotContext) => {
     transaction_hash: null
   };
 
-  console.log({ newOrder })
   const result = await create(
     "orders",
     null,
@@ -247,5 +249,59 @@ export const confirmAddOrder = async (ctx: BotContext) => {
   } else {
     await ctx.reply(Format.fmt`Order add error`);
   }
+  return ctx.scene.leave()
+}
+
+export const activeOrder = async (ctx: BotContext) => {
+  await updateDoc("orders", ctx.scene.session.idOrderToEdit, {
+    is_active: true
+  });
+  await ctx.reply(
+    Format.fmt`Order id ${Format.code(
+      ctx.scene.session.idOrderToEdit
+    )} is activated`
+  );
+}
+
+export const deActiveOrder = async (ctx: BotContext) => {
+  await updateDoc("orders", ctx.scene.session.idOrderToEdit, {
+    is_active: false
+  });
+  await ctx.reply(
+    Format.fmt`Order id ${Format.code(
+      ctx.scene.session.idOrderToEdit
+    )} is deactivated`
+  );
+}
+
+export const deleteOrder = async (ctx: BotContext) => {
+  const teleUser = ctx.from;
+  if (!teleUser) {
+    await ctx.reply("User not register")
+    return ctx.scene.leave();
+  }
+  deleteLastMessage(ctx)
+  const user = await getDoc("users", null, [
+    {
+      field: "telegram_id",
+      operation: "==",
+      value: teleUser.id,
+    },
+  ]);
+  if (!user) {
+    await ctx.reply("User not register")
+    return ctx.scene.leave();
+  }
+  await deleteDoc("orders", ctx.scene.session.idOrderToDelete);
+  await incrementNumericValue("users", user.id, "count_orders", -1)
+  await ctx.reply(
+    Format.fmt`Order deleted`
+  );
+  ctx.scene.reset();
+  return await ctx.scene.leave();
+};
+
+export const cancleAndClose = async (ctx: BotContext) => {
+  await deleteLastMessage(ctx)
   return ctx.scene.leave()
 }

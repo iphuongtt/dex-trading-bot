@@ -2,16 +2,41 @@ import { ethers } from 'ethers';
 import { Token, ChainId } from '@uniswap/sdk-core';
 import { SWAP_ROUTER_02_ADDRESSES } from '@uniswap/smart-order-router';
 import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
-import { chain } from 'lodash';
 import { SupportedChain } from '../types';
 
-const wethMap: { [key: number]: string } = {
-  [ChainId.MAINNET]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+export const wethMap: { [key: number]: string } = {
+  [ChainId.ARBITRUM_ONE]: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+  [ChainId.POLYGON]: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+  [ChainId.BNB]: '0x2170ed0880ac9a755fd29b2688956bd959f933f8',
   [ChainId.OPTIMISM]: '0x4200000000000000000000000000000000000006',
-  [ChainId.ARBITRUM_ONE]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-  [ChainId.BASE]: '0x4200000000000000000000000000000000000006',
-  [ChainId.GOERLI]: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
-  [ChainId.SEPOLIA]: '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9',
+  [ChainId.BLAST]: '0x4300000000000000000000000000000000000004',
+  [ChainId.BASE]: '0x4200000000000000000000000000000000000006'
+}
+
+export const usdcMap: { [key: number]: string } = {
+  [ChainId.MAINNET]: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  [ChainId.POLYGON]: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+  [ChainId.BNB]: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+  [ChainId.ARBITRUM_ONE]: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+  [ChainId.OPTIMISM]: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+  [ChainId.BASE]: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+}
+
+export const usdtMap: { [key: number]: string } = {
+  [ChainId.MAINNET]: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+  [ChainId.POLYGON]: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+  [ChainId.BNB]: '0x55d398326f99059fF775485246999027B3197955',
+  [ChainId.ARBITRUM_ONE]: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+  [ChainId.OPTIMISM]: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58'
+}
+
+export const daiMap: { [key: number]: string } = {
+  [ChainId.OPTIMISM]: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  [ChainId.MAINNET]: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+  [ChainId.ARBITRUM_ONE]: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  [ChainId.BNB]: '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3',
+  [ChainId.POLYGON]: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
+  [ChainId.BASE]: '0x6B175474E89094C44Da98b954EedeAC495271d0F'
 }
 
 export const explorerMap: { [key: number]: string } = {
@@ -83,6 +108,20 @@ export const getExplorer = (chain: SupportedChain): string => {
   switch (chain) {
     case 'base':
       return explorerMap[ChainId.BASE]
+      case 'arbitrum_one':
+      return explorerMap[ChainId.ARBITRUM_ONE]
+      case 'blast':
+      return explorerMap[ChainId.BLAST]
+      case 'bnb':
+      return explorerMap[ChainId.BNB]
+      case 'mainnet':
+      return explorerMap[ChainId.MAINNET]
+      case 'optimism':
+      return explorerMap[ChainId.OPTIMISM]
+      case 'polygon':
+      return explorerMap[ChainId.POLYGON]
+      case 'zora':
+      return explorerMap[ChainId.ZORA]
     default:
       break;
   }
@@ -114,5 +153,6 @@ export const emojs = {
   network: '🌎',
   route: '📍',
   buy: '➕',
-  sell: '➖'
+  sell: '➖',
+  view: '👀'
 }

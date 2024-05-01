@@ -1,4 +1,4 @@
-import { Context } from "telegraf"
+import { Context, Format } from "telegraf"
 import { BotContext } from "./context"
 import CryptoJS from 'crypto-js'
 import { Alchemy, Network } from "alchemy-sdk";
@@ -17,6 +17,7 @@ import { getChainId, getChainRPC } from "../libs"
 import { getDoc, create, getDocRef } from "../libs/firestore"
 import { SupportedChain } from "../types";
 import { User, Token as TokenModel } from "../models";
+import { getExplorer } from "../libs/constants2";
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -101,6 +102,15 @@ export const deleteLastMessage = async (ctx: Context) => {
   }
 }
 
+export const deleteLastMessages = async (ctx: Context, numMsg: number): Promise<number | null> => {
+  const msgId = getCurrentMessageId(ctx);
+  if (msgId) {
+    await deleteMessages(ctx, msgId, numMsg -1)
+    return msgId - numMsg
+  }
+  return null
+}
+
 export const encrypt = (telegram_id: number, txt: string): string => {
   const _secret = process.env.TTP_EN_KEY
   if (!_secret) {
@@ -133,7 +143,30 @@ export const getACLAPIKey = (chain: SupportedChain): string | undefined => {
   switch (chain) {
     case 'base':
       return process.env.ALC_BASE_KEY
+      case 'arbitrum_one':
+      return process.env.ALC_ARBITRUM_ONE_KEY
+      case 'optimism':
+      return process.env.ALC_OPTIMISM_KEY
+      case 'polygon':
+      return process.env.ALC_POLYGON_KEY
+      case 'zora':
+      return process.env.ALC_ZORA_KEY
+    default:
       break;
+  }
+  return undefined
+}
+
+export const getACLNetwork = (chain: SupportedChain): Network | undefined => {
+  switch (chain) {
+    case 'base':
+      return Network.BASE_MAINNET
+      case 'arbitrum_one':
+      return Network.ARB_MAINNET
+      case 'optimism':
+      return Network.OPT_MAINNET
+      case 'polygon':
+      return Network.POLYGONZKEVM_MAINNET
     default:
       break;
   }
@@ -142,14 +175,7 @@ export const getACLAPIKey = (chain: SupportedChain): string | undefined => {
 
 export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) => {
   const _apiKey = getACLAPIKey(chain)
-  let netWork = null
-  switch (chain) {
-    case 'base':
-      netWork = Network.BASE_MAINNET
-      break;
-    default:
-      break;
-  }
+  let netWork = getACLNetwork(chain)
   const _chainId = getChainId(chain);
   if (!_chainId) {
     return null
@@ -299,4 +325,28 @@ export const getChain = (_chain: string) => {
   } else {
     return null
   }
+}
+
+export const genTokenLink = (symbol: string, chain: SupportedChain, addr: string) => {
+  if (!symbol || !chain || !addr) {
+    return ''
+  }
+  return Format.link(symbol,`${getExplorer(chain)}/token/${addr}`
+  )
+}
+
+export const genAddressLink = (chain: SupportedChain, addr: string) => {
+  if (!chain || !addr) {
+    return ''
+  }
+  return Format.link(addr,`${getExplorer(chain)}/address/${addr}`
+  )
+}
+
+export const genChainLink = (chain: any) => {
+  if (!chain) {
+    return ''
+  }
+  return Format.link(chain.toUpperCase(),`${getExplorer(chain)}`
+  )
 }

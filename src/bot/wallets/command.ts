@@ -1,8 +1,8 @@
 import { Format, Markup, Context } from "telegraf";
 import { deleteDoc, getDoc, getListDocs, incrementNumericValue } from "../../libs/firestore";
-import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
+import { decrypt, deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
 import { emojs } from "../../libs/constants2";
-import { BotContext } from "../context";
+import { BotContext, closeBtn } from "../context";
 
 export const listWallets = async (ctx: Context) => {
   const teleUser = ctx.from;
@@ -30,6 +30,9 @@ export const listWallets = async (ctx: Context) => {
             Format.fmt` ${emojs.address} ${Format.bold('Address')}: ${Format.code(item.wallet)}\n`,
             Format.fmt` ${emojs.name} ${Format.bold('Name')}: ${Format.code(item.name)}\n`,
             Format.fmt` ${Format.bold('ID')}: ${Format.code(item.id)}\n`,
+            Format.fmt`${emojs.view} View: /view_wl_${item.id}\n`,
+            Format.fmt`${emojs.edit} Edit: /edit_wl_${item.id}\n`,
+            Format.fmt`${emojs.del} Delete: /delete_wl_${item.id}\n`
           ];
           strItems.push(Format.fmt`-------------------------------------\n`)
           items.push(Format.join(strItems))
@@ -92,13 +95,44 @@ export const getWalletMenus = async (ctx: Context) => {
         Markup.button.callback("💼 My wallets", "get_my_wallets"),
         Markup.button.callback("➕ Create wallet", "create_wallet"),
       ],
-      [
-        Markup.button.callback("✏️ Edit wallet", "edit_wallet"),
-        Markup.button.callback("❌ Del wallet", "delete_wallet"),
-      ],
       [Markup.button.callback('🔙 Back', 'back_to_main_menu')]
     ])
   );
+};
+
+export const viewDetailWallet = async (ctx: Context, walletId: string) => {
+  deleteLastMessage(ctx)
+  const teleUser = ctx.from;
+  if (!teleUser) {
+    return ctx.reply("User not register", closeBtn)
+  }
+  const user = await getDoc("users", null, [
+    {
+      field: "telegram_id",
+      operation: "==",
+      value: teleUser.id,
+    },
+  ]);
+  if (!user) {
+    return ctx.reply("User not register", closeBtn)
+  }
+  if (walletId) {
+    const _wallet: any = await getDoc("wallets", walletId);
+    if(_wallet) {
+      const strItems = [
+        Format.fmt`Your wallet info:\n`,
+        Format.fmt` ${emojs.address} ${Format.bold('Address')}: ${Format.code(_wallet.wallet)}\n`,
+        Format.fmt` ${emojs.name} ${Format.bold('Name')}: ${Format.code(_wallet.name)}\n`,
+        Format.fmt` ${emojs.key} ${Format.bold('Private key')}: ${Format.spoiler(_wallet.private_key ? decrypt(teleUser.id, _wallet.private_key) : '')}\n`,
+        Format.fmt` ${emojs.seed} ${Format.bold('Seed pharse')}: ${Format.spoiler(_wallet.seed_pharse ? decrypt(teleUser.id, _wallet.seed_pharse): '')}\n`,
+        Format.fmt` ${Format.bold('ID')}: ${Format.code(_wallet.id)}\n`,
+      ];
+      return ctx.reply(Format.join(strItems), closeBtn)
+    } else {
+      return ctx.reply('Wallet not found', closeBtn)
+    }
+  }
+  return ctx.reply('Wallet not found', closeBtn)
 };
 
 export const showWalletMenus = async (ctx: Context) => {
@@ -108,10 +142,6 @@ export const showWalletMenus = async (ctx: Context) => {
       [
         Markup.button.callback("💼 My wallets", "get_my_wallets"),
         Markup.button.callback("➕ Create wallet", "create_wallet"),
-      ],
-      [
-        Markup.button.callback("✏️ Edit wallet", "edit_wallet"),
-        Markup.button.callback("❌ Del wallet", "delete_wallet"),
       ],
       [Markup.button.callback('🔙 Back', 'back_to_main_menu')]
     ])

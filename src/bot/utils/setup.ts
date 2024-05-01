@@ -65,6 +65,9 @@ export const setupBot = (bot: Telegraf<BotContext>) => {
   bot.action("close_menu", ctx => {
     return deleteLastMessage(ctx)
   })
+  bot.action("close", ctx => {
+    return deleteLastMessage(ctx)
+  })
   //Bot starting
   const commands = [
     { command: "/start", description: "Start using Mybestcryptos trading bot" },

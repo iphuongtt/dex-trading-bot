@@ -6,6 +6,7 @@ import {
   getTemplateAddOrder,
   listOrders,
 } from "./command";
+import _ from "lodash";
 
 export const setupOrder = (bot: Telegraf<BotContext>) => {
   bot.command("addorder", (ctx) => ctx.scene.enter("addOrder"));
@@ -43,4 +44,33 @@ export const setupOrder = (bot: Telegraf<BotContext>) => {
   bot.action("change_order_status", async (ctx) =>
     ctx.scene.enter("editOrderStatusWizard")
   );
+
+  bot.command(/edit_ord_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _orderId = _.replace(_math, "edit_ord_", "");
+    return ctx.scene.enter("editCurrentOrderWizard", {idOrderToEdit: _orderId})
+  });
+  bot.command(/delete_ord_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _orderId = _.replace(_math, "delete_ord_", "");
+    return ctx.scene.enter("deleteOrderWizard", {idOrderToDelete: _orderId})
+  });
+
+  bot.command(/edit_target_price_ord_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _orderId = _.replace(_math, "edit_target_price_ord_", "");
+    return ctx.scene.enter("editOrderPriceWizard", {idOrderToEdit: _orderId})
+  });
+
+  bot.command(/edit_status_ord_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _orderId = _.replace(_math, "edit_status_ord_", "");
+    return ctx.scene.enter("editOrderStatusWizard", {idOrderToEdit: _orderId})
+  });
+
+  bot.command(/edit_amount_ord_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _orderId = _.replace(_math, "edit_amount_ord_", "");
+    return ctx.scene.enter("editOrderAmountWizard", {idOrderToEdit: _orderId})
+  });
 };

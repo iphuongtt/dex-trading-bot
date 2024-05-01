@@ -1,6 +1,7 @@
 import { Telegraf } from "telegraf";
 import { BotContext } from "../context";
-import { getWalletMenus, listWallets } from "./command";
+import { getWalletMenus, listWallets, viewDetailWallet } from "./command";
+import _ from "lodash";
 
 export const setupWallet = (bot: Telegraf<BotContext>) => {
   // bot.command("addwallet", (ctx) => ctx.scene.enter("addWalletWizard"));
@@ -11,6 +12,21 @@ export const setupWallet = (bot: Telegraf<BotContext>) => {
   bot.hears("🔍 Wallets", getWalletMenus);
   bot.hears("❌ Del wallet", (ctx) => ctx.scene.enter("deleteWalletWizard"));
   bot.hears("✏️ Edit wallet", (ctx) => ctx.scene.enter("editWalletWizard"));
+  bot.command(/view_wl_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _walletId = _.replace(_math, "view_wl_", "");
+    return viewDetailWallet(ctx, _walletId)
+  });
+  bot.command(/edit_wl_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _walletId = _.replace(_math, "edit_wl_", "");
+    return ctx.scene.enter("editCurrentWalletWizard", {idWalletToEdit: _walletId})
+  });
+  bot.command(/delete_wl_[a-zA-Z0-9]+/, async (ctx) => {
+    const _math = ctx.match[0];
+    const _walletId = _.replace(_math, "delete_wl_", "");
+    return ctx.scene.enter("deleteCurrentWalletWizard", {idWalletToDelete: _walletId})
+  });
   //Bot Actions
   // bot.action("add_wallet", async (ctx) => ctx.scene.enter("addWalletWizard"));
   bot.action("edit_wallet", async (ctx) => ctx.scene.enter("editWalletWizard"));

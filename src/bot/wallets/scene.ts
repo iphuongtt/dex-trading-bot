@@ -25,6 +25,7 @@ import {
 } from "./command";
 import { emojs } from "../../libs/constants2";
 import { Wallet } from "../../models";
+import _ from "lodash";
 
 const addWalletWizard = new Scenes.WizardScene<BotContext>(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene
@@ -277,6 +278,67 @@ const createWalletWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
+const editCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
+  "editCurrentWalletWizard", // first argument is Scene_ID, same as for BaseScene
+  async (ctx) => {
+    await deleteLastMessage(ctx)
+    if (ctx.scene.session.state && "idWalletToEdit" in ctx.scene.session.state && ctx.scene.session.state.idWalletToEdit && _.isString(ctx.scene.session.state.idWalletToEdit)) {
+      const wallet: any = await getDoc("wallets", ctx.scene.session.state.idWalletToEdit);
+      if (wallet) {
+        ctx.scene.session.idWalletToEdit = ctx.scene.session.state.idWalletToEdit;
+        await ctx.reply(
+          Format.fmt`Enter new name for wallet?\nAddress: ${Format.code(wallet.wallet)}`,
+          cancelBtn
+        );
+        return ctx.wizard.next();
+      } else {
+        await ctx.reply(Format.fmt`Wallet not found`);
+        return ctx.scene.leave();
+      }
+    } else {
+      return ctx.wizard.next();
+    }
+  },
+  async (ctx) => {
+    if (ctx.message && "text" in ctx.message && ctx.message.text) {
+      await updateDoc("wallets", ctx.scene.session.idWalletToEdit, {
+        name: ctx.message.text,
+      });
+      await ctx.reply(
+        Format.fmt`Wallet address ${Format.code(
+          ctx.scene.session.idWalletToEdit
+        )} updated`
+      );
+    } else {
+      await ctx.reply("Cancel");
+    }
+    return ctx.scene.leave();
+  }
+);
+
+const deleteCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
+  "deleteCurrentWalletWizard", // first argument is Scene_ID, same as for BaseScene
+  async (ctx) => {
+    await deleteLastMessage(ctx)
+    if (ctx.scene.session.state && "idWalletToDelete" in ctx.scene.session.state && ctx.scene.session.state.idWalletToDelete && _.isString(ctx.scene.session.state.idWalletToDelete)) {
+      const _wallet: any = await getDoc("wallets", ctx.scene.session.state.idWalletToDelete)
+      if (_wallet) {
+        ctx.scene.session.idWalletToDelete = ctx.scene.session.state.idWalletToDelete;
+        await ctx.reply(
+          Format.fmt`Are you sure to delete wallet?\nAddress: ${Format.code(_wallet.wallet)}\nName:${Format.code(_wallet.name)}`,
+          yesOrNoInlineKeyboard
+        );
+        return ctx.wizard.next();
+      } else {
+        await ctx.reply('Wallet not found')
+        return ctx.scene.leave()
+      }
+    } else {
+      return ctx.wizard.next();
+    }
+  }
+);
+
 addWalletWizard.action("leave", leaveSceneWalletStep0);
 addWalletWizard.action("leave_step_1", leaveSceneWalletStep1);
 editWalletWizard.action("leave", leaveSceneWalletStep0);
@@ -284,12 +346,23 @@ editWalletWizard.action("leave_step_2", leaveSceneWalletStep2);
 deleteWalletWizard.action("leave", leaveSceneWalletStep0);
 createWalletWizard.action("leave", leaveSceneWalletStep0);
 deleteWalletWizard.action("yes", deleteWallet);
-
 deleteWalletWizard.action("no", leaveSceneWalletStep2);
+
+deleteCurrentWalletWizard.action("yes", deleteWallet);
+deleteCurrentWalletWizard.action("no", async (ctx) => {
+  await deleteLastMessage(ctx)
+  return ctx.scene.leave()
+});
+editCurrentWalletWizard.action("leave", async (ctx) => {
+  await deleteLastMessage(ctx)
+  return ctx.scene.leave()
+})
 
 export const walletScenes = [
   // addWalletWizard,
   deleteWalletWizard,
   editWalletWizard,
-  createWalletWizard
+  createWalletWizard,
+  editCurrentWalletWizard,
+  deleteCurrentWalletWizard
 ];

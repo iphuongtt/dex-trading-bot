@@ -45,3 +45,7 @@ export const cancelBtnStep3 = Markup.inlineKeyboard([
 export const cancelBtnStep4 = Markup.inlineKeyboard([
   Markup.button.callback(`${emojs.cancel} Cancel`, "leave_step_4"),
 ]);
+
+export const closeBtn = Markup.inlineKeyboard([
+  Markup.button.callback(`${emojs.cancel} Close`, "close"),
+]);
