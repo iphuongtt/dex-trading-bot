@@ -19,7 +19,7 @@ export class Swap2 {
       return false
     }
     if (!wallet || !chain || !target_price || !amount || !base_token || !quote_token || !user_id || !id || !wallet_id) {
-      this.bot.telegram.sendMessage(telegram_id, 'Order not valid')
+      this.bot.telegram.sendMessage(telegram_id, 'Order not valid').catch(e => console.log(e))
       return false
     }
     try {
@@ -29,7 +29,7 @@ export class Swap2 {
         userSwap.executeSwap()
       }
     } catch (error: any) {
-      this.bot.telegram.sendMessage(telegram_id, error.message)
+      this.bot.telegram.sendMessage(telegram_id, error.message).catch(e => console.log(e))
       console.log(error)
     }
 

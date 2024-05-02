@@ -1,8 +1,9 @@
 import { Context, Markup } from "telegraf";
 import { emojs } from "../../libs/constants2";
+import { reply } from "../util";
 
 export const getMenus = async (ctx: Context) => {
-  return await ctx.reply(
+  return await reply(ctx,
     "Mybestcryptos trading bot",
     Markup.inlineKeyboard([
       [
@@ -38,7 +39,7 @@ export const clearHistory = async (ctx: Context) => {
 
 export const backToMainMenu = async (ctx: Context) => {
   await ctx.deleteMessage().catch(e => console.log(e));
-  return await ctx.reply(
+  return await reply(ctx,
     "Mybestcryptos trading bot",
     Markup.inlineKeyboard([
       [

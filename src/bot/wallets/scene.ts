@@ -16,7 +16,7 @@ import {
   updateDoc,
 } from "../../libs/firestore";
 import { removeUndefined } from "../../libs";
-import { deleteLastMessage, encrypt, isVIP } from "../util";
+import { deleteLastMessage, encrypt, isVIP, reply } from "../util";
 import {
   leaveSceneWalletStep1,
   leaveSceneWalletStep2,
@@ -31,7 +31,7 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await ctx.reply("Please enter the wallet address", cancelBtn);
+    await reply(ctx, "Please enter the wallet address", cancelBtn);
     ctx.scene.session.walletAddress = "";
     return ctx.wizard.next();
   },
@@ -40,7 +40,7 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
       if (isAddress(ctx.message.text)) {
         const teleUser = ctx.from;
         if (!teleUser) {
-          return ctx.reply("User not found");
+          return reply(ctx, "User not found");
         }
         const isWalletExist = await isExists("wallets", null, [
           {
@@ -56,15 +56,15 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
         ]);
         if (!isWalletExist) {
           ctx.scene.session.walletAddress = ctx.message.text;
-          await ctx.reply("Please enter name for the wallet", cancelBtnStep1);
+          await reply(ctx, "Please enter name for the wallet", cancelBtnStep1);
         } else {
-          await ctx.reply(
+          await reply(ctx,
             Format.fmt`Wallet: ${Format.code(ctx.message.text)} exists`
           );
           return ctx.scene.leave();
         }
       } else {
-        await ctx.reply("Wallet is invalid format!");
+        await reply(ctx, "Wallet is invalid format!");
         return ctx.scene.leave();
       }
     }
@@ -74,7 +74,7 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
     if (ctx.message && "text" in ctx.message) {
       const teleUser = ctx.from;
       if (!teleUser) {
-        await ctx.reply("User not found");
+        await reply(ctx, "User not found");
         return ctx.scene.leave();
       }
       const user = await getDoc("users", null, [
@@ -85,7 +85,7 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
         },
       ]);
       if (!user) {
-        await ctx.reply("User not found");
+        await reply(ctx, "User not found");
         return ctx.scene.leave();
       }
       ctx.scene.session.walletName = ctx.message.text;
@@ -100,14 +100,14 @@ const addWalletWizard = new Scenes.WizardScene<BotContext>(
       };
       const result = await create("wallets", null, removeUndefined(newWallet));
       if (result) {
-        await ctx.reply(
+        await reply(ctx,
           Format.fmt`Wallet added:\nAddress: ${Format.code(
             ctx.scene.session.walletAddress
           )}\nName: ${Format.code(ctx.scene.session.walletName)}`
         );
         return ctx.scene.leave();
       } else {
-        await ctx.reply(
+        await reply(ctx,
           Format.fmt`Wallet: ${Format.code(ctx.message.text)} add error`
         );
         return ctx.scene.leave();
@@ -120,7 +120,7 @@ const deleteWalletWizard = new Scenes.WizardScene<BotContext>(
   "deleteWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await ctx.reply(
+    await reply(ctx,
       "Please enter the wallet ID that you want to delete",
       cancelBtn
     );
@@ -136,7 +136,7 @@ const deleteWalletWizard = new Scenes.WizardScene<BotContext>(
     } else {
       return ctx.wizard.next();
     }
-    await ctx.reply(
+    await reply(ctx,
       Format.fmt`Are you sure to delete the wallet?`,
       yesOrNoInlineKeyboard
     );
@@ -148,7 +148,7 @@ const editWalletWizard = new Scenes.WizardScene<BotContext>(
   "editWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await ctx.reply(
+    await reply(ctx,
       "Please enter the wallet ID that you want to edit",
       cancelBtn
     );
@@ -161,13 +161,13 @@ const editWalletWizard = new Scenes.WizardScene<BotContext>(
       if (wallet) {
         ctx.scene.session.idWalletToEdit = ctx.message.text;
       } else {
-        await ctx.reply(Format.fmt`Wallet not found`);
+        await reply(ctx, Format.fmt`Wallet not found`);
         return ctx.scene.leave();
       }
     } else {
       return ctx.wizard.next();
     }
-    await ctx.reply(
+    await reply(ctx,
       Format.fmt`Enter new name for ${Format.code("address")}`,
       cancelBtnStep2
     );
@@ -178,13 +178,13 @@ const editWalletWizard = new Scenes.WizardScene<BotContext>(
       await updateDoc("wallets", ctx.scene.session.idWalletToEdit, {
         name: ctx.message.text,
       });
-      await ctx.reply(
+      await reply(ctx,
         Format.fmt`Wallet address ${Format.code(
           ctx.scene.session.idWalletToEdit
         )} updated`
       );
     } else {
-      await ctx.reply("Cancel");
+      await reply(ctx, "Cancel");
     }
     return ctx.scene.leave();
   }
@@ -194,7 +194,7 @@ const createWalletWizard = new Scenes.WizardScene<BotContext>(
   "createWalletWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await ctx.reply("Please enter wallet name", cancelBtn);
+    await reply(ctx, "Please enter wallet name", cancelBtn);
     ctx.scene.session.createWalletName = "";
     return ctx.wizard.next();
   },
@@ -202,7 +202,7 @@ const createWalletWizard = new Scenes.WizardScene<BotContext>(
     if (ctx.message && "text" in ctx.message) {
       const teleUser = ctx.from;
       if (!teleUser) {
-        await ctx.reply("User not found");
+        await reply(ctx, "User not found");
         return ctx.scene.leave();
       }
       const user: any = await getDoc("users", null, [
@@ -213,11 +213,11 @@ const createWalletWizard = new Scenes.WizardScene<BotContext>(
         },
       ]);
       if (!user) {
-        await ctx.reply("User not found");
+        await reply(ctx, "User not found");
         return ctx.scene.leave();
       }
       if (!isVIP(user) && user.count_wallets > 0) {
-        await ctx.reply(`${emojs.error} You can create maximum 1 wallet. Please upgrade to VIP account`);
+        await reply(ctx, `${emojs.error} You can create maximum 1 wallet. Please upgrade to VIP account`);
         return ctx.scene.leave();
       }
       const isWalletNameExist = await isExists("wallets", null, [
@@ -259,16 +259,16 @@ const createWalletWizard = new Scenes.WizardScene<BotContext>(
             Format.fmt` ${emojs.key} ${Format.bold('Private key')}: ${Format.spoiler(wallet.privateKey)}\n`,
             Format.fmt` ${emojs.seed} ${Format.bold('Seed pharse')}: ${Format.spoiler(wallet.mnemonic ? wallet.mnemonic.phrase : '')}\n`
           ]
-          await ctx.reply(Format.join(strs));
+          await reply(ctx, Format.join(strs));
           return ctx.scene.leave();
         } else {
-          await ctx.reply(
+          await reply(ctx,
             Format.fmt`Wallet: ${Format.code(ctx.message.text)} add error`
           );
           return ctx.scene.leave();
         }
       } else {
-        await ctx.reply(
+        await reply(ctx,
           Format.fmt`Wallet name: ${Format.code(ctx.message.text)} exists`
         );
         return ctx.scene.leave();
@@ -286,13 +286,13 @@ const editCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
       const wallet: any = await getDoc("wallets", ctx.scene.session.state.idWalletToEdit);
       if (wallet) {
         ctx.scene.session.idWalletToEdit = ctx.scene.session.state.idWalletToEdit;
-        await ctx.reply(
+        await reply(ctx,
           Format.fmt`Enter new name for wallet?\nAddress: ${Format.code(wallet.wallet)}`,
           cancelBtn
         );
         return ctx.wizard.next();
       } else {
-        await ctx.reply(Format.fmt`Wallet not found`);
+        await reply(ctx, Format.fmt`Wallet not found`);
         return ctx.scene.leave();
       }
     } else {
@@ -304,13 +304,13 @@ const editCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
       await updateDoc("wallets", ctx.scene.session.idWalletToEdit, {
         name: ctx.message.text,
       });
-      await ctx.reply(
+      await reply(ctx,
         Format.fmt`Wallet address ${Format.code(
           ctx.scene.session.idWalletToEdit
         )} updated`
       );
     } else {
-      await ctx.reply("Cancel");
+      await reply(ctx, "Cancel");
     }
     return ctx.scene.leave();
   }
@@ -324,13 +324,13 @@ const deleteCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
       const _wallet: any = await getDoc("wallets", ctx.scene.session.state.idWalletToDelete)
       if (_wallet) {
         ctx.scene.session.idWalletToDelete = ctx.scene.session.state.idWalletToDelete;
-        await ctx.reply(
+        await reply(ctx,
           Format.fmt`Are you sure to delete wallet?\nAddress: ${Format.code(_wallet.wallet)}\nName:${Format.code(_wallet.name)}`,
           yesOrNoInlineKeyboard
         );
         return ctx.wizard.next();
       } else {
-        await ctx.reply('Wallet not found')
+        await reply(ctx, 'Wallet not found')
         return ctx.scene.leave()
       }
     } else {

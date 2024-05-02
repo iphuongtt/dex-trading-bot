@@ -147,7 +147,9 @@ export class UserSwap {
   }
 
   async notify(msg: any) {
-    return this.bot.telegram.sendMessage(this.telegram_id, msg)
+    return this.bot.telegram.sendMessage(this.telegram_id, msg).catch(e => {
+      console.log(e)
+    })
   }
 
   async getSwap2CurrencyBalance(): Promise<BigNumber> {

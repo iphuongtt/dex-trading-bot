@@ -5,7 +5,7 @@ import { removeUndefined } from "../../libs";
 import { backToMainMenu, clearHistory, getMenus } from "./command";
 import { orderScenes } from "../orders";
 import { walletScenes } from "../wallets";
-import { deleteLastMessage } from "../util";
+import { deleteLastMessage, reply } from "../util";
 import { User } from "../../models";
 
 export const setupBot = (bot: Telegraf<BotContext>) => {
@@ -39,19 +39,10 @@ export const setupBot = (bot: Telegraf<BotContext>) => {
         count_wallets: 0
       };
       create("users", null, removeUndefined(newUser)).then((result) => {
-        console.log({ result });
-        bot.telegram.sendMessage(
-          ctx.chat.id,
-          `Hello ${teleUser.first_name}! Welcome to the Mybestcrypto telegram bot.`,
-          {}
-        );
+        return reply(ctx, `Hello ${teleUser.first_name}! Welcome to the Mybestcrypto telegram bot.`)
       });
     } else {
-      bot.telegram.sendMessage(
-        ctx.chat.id,
-        `Hello ${teleUser.first_name}!. Welcome to the Mybestcrypto telegram bot.`,
-        {}
-      );
+      return reply(ctx, `Hello ${teleUser.first_name}! Welcome to the Mybestcrypto telegram bot.`)
     }
   });
   //Bot commands

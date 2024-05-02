@@ -1,6 +1,6 @@
 import { Format, Markup, Context } from "telegraf";
 import { deleteDoc, getDoc, getListDocs, incrementNumericValue } from "../../libs/firestore";
-import { decrypt, deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId } from "../util";
+import { decrypt, deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId, reply } from "../util";
 import { emojs } from "../../libs/constants2";
 import { BotContext, closeBtn } from "../context";
 
@@ -37,21 +37,21 @@ export const listWallets = async (ctx: Context) => {
           strItems.push(Format.fmt`-------------------------------------\n`)
           items.push(Format.join(strItems))
         });
-        await ctx.reply(Format.join([title, ...items]), Markup.inlineKeyboard([
+        await reply(ctx, Format.join([title, ...items]), Markup.inlineKeyboard([
           Markup.button.callback(`${emojs.back} Back`, 'show_wallet_menu')
         ]));
       } else {
-        await ctx.reply(`You don't have any wallet`, Markup.inlineKeyboard([
+        await reply(ctx, `You don't have any wallet`, Markup.inlineKeyboard([
           Markup.button.callback(`${emojs.back} Back`, 'show_wallet_menu')
         ]));
       }
     } else {
-      await ctx.reply("User not found", Markup.inlineKeyboard([
+      await reply(ctx, "User not found", Markup.inlineKeyboard([
         Markup.button.callback(`${emojs.back} Back`, 'show_wallet_menu')
       ]));
     }
   } else {
-    await ctx.reply("User not found", Markup.inlineKeyboard([
+    await reply(ctx, "User not found", Markup.inlineKeyboard([
       Markup.button.callback(`${emojs.back} Back`, 'show_wallet_menu')
     ]));
   }
@@ -60,7 +60,7 @@ export const listWallets = async (ctx: Context) => {
 export const deleteWallet = async (ctx: BotContext) => {
   const teleUser = ctx.from;
   if (!teleUser) {
-    await ctx.reply("User not register")
+    await reply(ctx, "User not register")
     return ctx.scene.leave();
   }
   deleteLastMessage(ctx)
@@ -72,12 +72,12 @@ export const deleteWallet = async (ctx: BotContext) => {
     },
   ]);
   if (!user) {
-    await ctx.reply("User not register")
+    await reply(ctx, "User not register")
     return ctx.scene.leave();
   }
   await deleteDoc("wallets", ctx.scene.session.idWalletToDelete);
   await incrementNumericValue("users", user.id, "count_wallets", -1)
-  await ctx.reply(
+  await reply(ctx,
     Format.fmt`Wallet address ${Format.code(
       ctx.scene.session.idWalletToDelete
     )} deleted`
@@ -88,12 +88,15 @@ export const deleteWallet = async (ctx: BotContext) => {
 
 export const getWalletMenus = async (ctx: Context) => {
   await ctx.deleteMessage().catch(e => console.log(e));
-  return await ctx.reply(
+  return await reply(ctx,
     "Wallet menu",
     Markup.inlineKeyboard([
       [
         Markup.button.callback("💼 My wallets", "get_my_wallets"),
         Markup.button.callback("➕ Create wallet", "create_wallet"),
+      ],
+      [
+        Markup.button.callback("Transfer token", "transfer_token"),
       ],
       [Markup.button.callback('🔙 Back', 'back_to_main_menu')]
     ])
@@ -104,7 +107,7 @@ export const viewDetailWallet = async (ctx: Context, walletId: string) => {
   deleteLastMessage(ctx)
   const teleUser = ctx.from;
   if (!teleUser) {
-    return ctx.reply("User not register", closeBtn)
+    return reply(ctx, "User not register", closeBtn)
   }
   const user = await getDoc("users", null, [
     {
@@ -114,29 +117,35 @@ export const viewDetailWallet = async (ctx: Context, walletId: string) => {
     },
   ]);
   if (!user) {
-    return ctx.reply("User not register", closeBtn)
+    return reply(ctx, "User not register", closeBtn)
   }
   if (walletId) {
     const _wallet: any = await getDoc("wallets", walletId);
-    if(_wallet) {
+    if (_wallet) {
+      let _private_key = 'null'
+      let _seed_pharse = 'null'
+      try {
+        _private_key = _wallet.private_key ? decrypt(teleUser.id, _wallet.private_key) : 'null'
+        _seed_pharse = _wallet.seed_pharse ? decrypt(teleUser.id, _wallet.seed_pharse) : 'null'
+      } catch (error) { }
       const strItems = [
         Format.fmt`Your wallet info:\n`,
         Format.fmt` ${emojs.address} ${Format.bold('Address')}: ${Format.code(_wallet.wallet)}\n`,
         Format.fmt` ${emojs.name} ${Format.bold('Name')}: ${Format.code(_wallet.name)}\n`,
-        Format.fmt` ${emojs.key} ${Format.bold('Private key')}: ${Format.spoiler(_wallet.private_key ? decrypt(teleUser.id, _wallet.private_key) : '')}\n`,
-        Format.fmt` ${emojs.seed} ${Format.bold('Seed pharse')}: ${Format.spoiler(_wallet.seed_pharse ? decrypt(teleUser.id, _wallet.seed_pharse): '')}\n`,
+        Format.fmt` ${emojs.key} ${Format.bold('Private key')}: ${Format.spoiler(_private_key)}\n`,
+        Format.fmt` ${emojs.seed} ${Format.bold('Seed pharse')}: ${Format.spoiler(_seed_pharse)}\n`,
         Format.fmt` ${Format.bold('ID')}: ${Format.code(_wallet.id)}\n`,
       ];
-      return ctx.reply(Format.join(strItems), closeBtn)
+      return reply(ctx, Format.join(strItems), closeBtn)
     } else {
-      return ctx.reply('Wallet not found', closeBtn)
+      return reply(ctx, 'Wallet not found', closeBtn)
     }
   }
-  return ctx.reply('Wallet not found', closeBtn)
+  return reply(ctx, 'Wallet not found', closeBtn)
 };
 
 export const showWalletMenus = async (ctx: Context) => {
-  return ctx.reply(
+  return reply(ctx,
     "Wallet menu",
     Markup.inlineKeyboard([
       [

@@ -2,7 +2,7 @@ import { Context, Format } from "telegraf"
 import { BotContext } from "./context"
 import CryptoJS from 'crypto-js'
 import { Alchemy, Network } from "alchemy-sdk";
-import { ethers as ethersNew } from "ethers-new"
+import { ethers as ethersNew, isAddress } from "ethers-new"
 import { ethers } from "ethers";
 import { AlphaRouter, SwapType } from "@uniswap/smart-order-router";
 import {
@@ -11,16 +11,25 @@ import {
   Percent,
   ChainId,
   Token,
-  SWAP_ROUTER_02_ADDRESSES,
 } from "@uniswap/sdk-core";
 import { getChainId, getChainRPC } from "../libs"
-import { getDoc, create, getDocRef } from "../libs/firestore"
+import { getDoc, create, getDocRef, getListDocs } from "../libs/firestore"
 import { SupportedChain } from "../types";
 import { User, Token as TokenModel } from "../models";
 import { getExplorer } from "../libs/constants2";
+import { FmtString } from "telegraf/typings/format";
+import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
+import _ from "lodash";
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
+    console.log(e)
+  })
+}
+
+
+export const reply = async (ctx: Context, text: string | FmtString, extra?: ExtraReplyMessage) => {
+  return ctx.reply(text, extra).catch((e: any) => {
     console.log(e)
   })
 }
@@ -105,7 +114,7 @@ export const deleteLastMessage = async (ctx: Context) => {
 export const deleteLastMessages = async (ctx: Context, numMsg: number): Promise<number | null> => {
   const msgId = getCurrentMessageId(ctx);
   if (msgId) {
-    await deleteMessages(ctx, msgId, numMsg -1)
+    await deleteMessages(ctx, msgId, numMsg - 1)
     return msgId - numMsg
   }
   return null
@@ -143,13 +152,13 @@ export const getACLAPIKey = (chain: SupportedChain): string | undefined => {
   switch (chain) {
     case 'base':
       return process.env.ALC_BASE_KEY
-      case 'arbitrum_one':
+    case 'arbitrum_one':
       return process.env.ALC_ARBITRUM_ONE_KEY
-      case 'optimism':
+    case 'optimism':
       return process.env.ALC_OPTIMISM_KEY
-      case 'polygon':
+    case 'polygon':
       return process.env.ALC_POLYGON_KEY
-      case 'zora':
+    case 'zora':
       return process.env.ALC_ZORA_KEY
     default:
       break;
@@ -161,11 +170,11 @@ export const getACLNetwork = (chain: SupportedChain): Network | undefined => {
   switch (chain) {
     case 'base':
       return Network.BASE_MAINNET
-      case 'arbitrum_one':
+    case 'arbitrum_one':
       return Network.ARB_MAINNET
-      case 'optimism':
+    case 'optimism':
       return Network.OPT_MAINNET
-      case 'polygon':
+    case 'polygon':
       return Network.POLYGONZKEVM_MAINNET
     default:
       break;
@@ -181,37 +190,52 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
     return null
   }
   if (_apiKey && netWork) {
-    const token: any = await getDoc("tokens", null, [
-      {
-        field: 'address', operation: '==', value: tokenAddress
-      },
-      {
-        field: 'chain_id', operation: '==', value: _chainId
+    if (isAddress(tokenAddress)) {
+      const token: any = await getDoc("tokens", null, [
+        {
+          field: 'address', operation: '==', value: tokenAddress.toLowerCase()
+        },
+        {
+          field: 'chain_id', operation: '==', value: _chainId
+        }
+      ])
+      if (!token) {
+        const config = {
+          apiKey: _apiKey,
+          network: netWork,
+        };
+        const alchemy = new Alchemy(config);
+        // The token address we want to query for metadata
+        const tokenMetaData = await alchemy.core.getTokenMetadata(
+          tokenAddress
+        )
+        if (tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
+          const _tokenRef = getDocRef("tokens");
+          await create('tokens', _tokenRef.id, {
+            ...tokenMetaData,
+            chain_id: _chainId,
+            address: tokenAddress.toLowerCase(),
+            chain
+          })
+          return new TokenModel(tokenAddress.toLowerCase(), tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined, _tokenRef.id)
+        }
+        return null
+      } else {
+        return new TokenModel(tokenAddress.toLowerCase(), token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined, token.id)
       }
-    ])
-    if (!token) {
-      const config = {
-        apiKey: _apiKey,
-        network: netWork,
-      };
-      const alchemy = new Alchemy(config);
-      // The token address we want to query for metadata
-      const tokenMetaData = await alchemy.core.getTokenMetadata(
-        tokenAddress
-      )
-      if (tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
-        const _tokenRef = getDocRef("tokens");
-        await create('tokens', _tokenRef.id, {
-          ...tokenMetaData,
-          chain_id: _chainId,
-          address: tokenAddress,
-          chain
-        })
-        return new TokenModel(tokenAddress, tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined, _tokenRef.id)
-      }
-      return null
     } else {
-      return new TokenModel(tokenAddress, token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined, token.id)
+      const tokens: any = await getListDocs("tokens", [
+        {
+          field: 'symbol', operation: '==', value: _.replace(tokenAddress, '/', '').toUpperCase()
+        },
+        {
+          field: 'chain_id', operation: '==', value: _chainId
+        }
+      ])
+      if (tokens.length !== 1) {
+        return false
+      }
+      return new TokenModel(tokens[0].address.toLowerCase(), tokens[0].decimals, tokens[0].symbol, tokens[0].name, chain, _chainId, tokens[0].logo ? tokens[0].logo : undefined, tokens[0].id)
     }
   }
   return null
@@ -331,7 +355,7 @@ export const genTokenLink = (symbol: string, chain: SupportedChain, addr: string
   if (!symbol || !chain || !addr) {
     return ''
   }
-  return Format.link(symbol,`${getExplorer(chain)}/token/${addr}`
+  return Format.link(symbol, `${getExplorer(chain)}/token/${addr}`
   )
 }
 
@@ -339,7 +363,7 @@ export const genAddressLink = (chain: SupportedChain, addr: string) => {
   if (!chain || !addr) {
     return ''
   }
-  return Format.link(addr,`${getExplorer(chain)}/address/${addr}`
+  return Format.link(addr, `${getExplorer(chain)}/address/${addr}`
   )
 }
 
@@ -347,6 +371,6 @@ export const genChainLink = (chain: any) => {
   if (!chain) {
     return ''
   }
-  return Format.link(chain.toUpperCase(),`${getExplorer(chain)}`
+  return Format.link(chain.toUpperCase(), `${getExplorer(chain)}`
   )
 }

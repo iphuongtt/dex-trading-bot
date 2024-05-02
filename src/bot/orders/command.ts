@@ -7,7 +7,7 @@ import numeral from "numeral";
 import { getAddOrderTemplate } from "./schema";
 import _ from "lodash";
 import { BotContext } from "../context";
-import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId, isVIP } from "../util";
+import { deleteLastMessage, deleteMessage, deleteMessages, getCurrentMessageId, isVIP, reply } from "../util";
 import { Order } from "../../models";
 import { removeUndefined } from "../../libs";
 
@@ -40,15 +40,15 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
         const items: any = [Format.fmt`-------------------------------------\n`]
         orders.forEach((item: Order) => {
           const createat = item.create_at
-          if (createat instanceof Timestamp) {
-            console.log(moment(createat.toDate()).format('LLLL'))
-          }
           const strItems = [
-            Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${numeral(item.base_token).format('0,0')} ${item.base_token.symbol}/${item.quote_token.symbol}\n`,
-            Format.fmt`🎯 Target price: ${item.target_price}\n`,
+            Format.fmt`${emojs.order} ${_.upperFirst(item.type)} ${Format.code(numeral(item.amount).format('0,0'))} ${item.base_token.symbol}/${item.quote_token.symbol}\n`,
+            Format.fmt`🎯 Target price: ${Format.code(item.target_price)}\n`,
             Format.fmt`Status: ${item.is_filled ? `${emojs.checked} Filled` : `${emojs.pending} Pending`}\n`,
             Format.fmt`Active: ${item.is_active ? `${emojs.yes} Yes` : `${emojs.no} No`}\n`
           ];
+          if (createat instanceof Timestamp) {
+            strItems.push(Format.fmt`${emojs.date} Create At: ${moment(createat.toDate()).format('LLLL')} (${moment(createat.toDate()).fromNow()})\n`)
+          }
           if (item.is_filled) {
             strItems.push(Format.fmt`Transaction: ${Format.link(item.transaction_hash || '', `${getExplorer(item.chain)}/tx/${item.transaction_hash || ''}`)}\n`)
           }
@@ -59,15 +59,15 @@ export const listOrders = async (ctx: Context, isRefresh?: boolean) => {
           strItems.push(Format.fmt`-------------------------------------\n`)
           items.push(Format.join(strItems))
         })
-        await ctx.reply(Format.join([title, ...items]), inlineWalletKeyboard)
+        await reply(ctx, Format.join([title, ...items]), inlineWalletKeyboard)
       } else {
-        await ctx.reply(`You don't have any order`, btnShowOrderMenus)
+        await reply(ctx, `You don't have any order`, btnShowOrderMenus)
       }
     } else {
-      await ctx.reply('User not found', btnShowOrderMenus)
+      await reply(ctx, 'User not found', btnShowOrderMenus)
     }
   } else {
-    await ctx.reply('User not found', btnShowOrderMenus)
+    await reply(ctx, 'User not found', btnShowOrderMenus)
   }
 }
 
@@ -76,18 +76,18 @@ export const getTemplate = async (ctx: Context) => {
   const keyboards = Markup.inlineKeyboard([
     Markup.button.callback('Add order', 'get_template_add_order'),
   ])
-  await ctx.reply("Select tempalte for: ", keyboards);
+  await reply(ctx, "Select tempalte for: ", keyboards);
 }
 
 export const getTemplateAddOrder = async (ctx: BotContext) => {
   deleteLastMessage(ctx)
-  return ctx.reply(Format.code(getAddOrderTemplate()), Markup.inlineKeyboard([
+  return reply(ctx, Format.code(getAddOrderTemplate()), Markup.inlineKeyboard([
     Markup.button.callback(`${emojs.back} Back`, 'show_order_menu')
   ]));
 }
 
 const _getOrderMenus = (ctx: Context) => {
-  return ctx.reply(`${emojs.order} Order menu`, Markup.inlineKeyboard([
+  return reply(ctx, `${emojs.order} Order menu`, Markup.inlineKeyboard([
     [Markup.button.callback(`${emojs.order} My orders`, 'get_my_orders'), Markup.button.callback(`${emojs.add} Add order 2`, 'add_2_order')],
     [Markup.button.callback(`${emojs.back} Back`, 'back_to_main_menu')]
   ]))
@@ -103,7 +103,7 @@ export const showOrderMenus = async (ctx: Context) => {
 };
 
 const _getEditOrderMenus = (ctx: Context) => {
-  return ctx.reply('🦄 Which would you like to edit?', Markup.inlineKeyboard([
+  return reply(ctx, '🦄 Which would you like to edit?', Markup.inlineKeyboard([
     [Markup.button.callback('Change target price', 'change_target_price')],
     [Markup.button.callback('Change amount', 'change_order_amount')],
     [Markup.button.callback('Active or Deactive', 'change_order_status')],
@@ -193,18 +193,18 @@ export const leaveSceneEditOrderStep1 = async (ctx: BotContext) => {
 export const confirmAddOrder = async (ctx: BotContext) => {
   const teleUser = ctx.from
   if (!teleUser) {
-    await ctx.reply('User not found')
+    await reply(ctx, 'User not found')
     return ctx.scene.leave()
   }
   const user: any = await getDoc('users', null, [
     { field: 'telegram_id', operation: '==', value: teleUser.id }
   ])
   if (!user) {
-    await ctx.reply('User not found')
+    await reply(ctx, 'User not found')
     return ctx.scene.leave()
   }
   if (!isVIP(user) && user.count_orders > 0) {
-    await ctx.reply(`${emojs.error} You can create maximum 1 order. Please upgrade to VIP account`);
+    await reply(ctx, `${emojs.error} You can create maximum 1 order. Please upgrade to VIP account`);
     return ctx.scene.leave();
   }
   //Check if the wallet address has been configured with the corresponding private key or not.
@@ -214,11 +214,11 @@ export const confirmAddOrder = async (ctx: BotContext) => {
     { field: 'telegram_id', operation: '==', value: teleUser.id }
   ])
   if (!wallet) {
-    await ctx.reply('Wallet not found')
+    await reply(ctx, 'Wallet not found')
     return ctx.scene.leave()
   }
   if (!ctx.scene.session.addChain || !ctx.scene.session.orderType || !ctx.scene.session.baseTokenData || !ctx.scene.session.quoteTokenData) {
-    await ctx.reply('Unknow error')
+    await reply(ctx, 'Unknow error')
     return ctx.scene.leave()
   }
   const newOrder: Order = {
@@ -245,9 +245,9 @@ export const confirmAddOrder = async (ctx: BotContext) => {
   );
   if (result) {
     await incrementNumericValue("users", user.id, "count_orders")
-    await ctx.reply(Format.fmt`Order added`);
+    await reply(ctx, Format.fmt`Order added`);
   } else {
-    await ctx.reply(Format.fmt`Order add error`);
+    await reply(ctx, Format.fmt`Order add error`);
   }
   return ctx.scene.leave()
 }
@@ -256,7 +256,7 @@ export const activeOrder = async (ctx: BotContext) => {
   await updateDoc("orders", ctx.scene.session.idOrderToEdit, {
     is_active: true
   });
-  await ctx.reply(
+  await reply(ctx,
     Format.fmt`Order id ${Format.code(
       ctx.scene.session.idOrderToEdit
     )} is activated`
@@ -267,7 +267,7 @@ export const deActiveOrder = async (ctx: BotContext) => {
   await updateDoc("orders", ctx.scene.session.idOrderToEdit, {
     is_active: false
   });
-  await ctx.reply(
+  await reply(ctx,
     Format.fmt`Order id ${Format.code(
       ctx.scene.session.idOrderToEdit
     )} is deactivated`
@@ -277,7 +277,7 @@ export const deActiveOrder = async (ctx: BotContext) => {
 export const deleteOrder = async (ctx: BotContext) => {
   const teleUser = ctx.from;
   if (!teleUser) {
-    await ctx.reply("User not register")
+    await reply(ctx, "User not register")
     return ctx.scene.leave();
   }
   deleteLastMessage(ctx)
@@ -289,12 +289,12 @@ export const deleteOrder = async (ctx: BotContext) => {
     },
   ]);
   if (!user) {
-    await ctx.reply("User not register")
+    await reply(ctx, "User not register")
     return ctx.scene.leave();
   }
   await deleteDoc("orders", ctx.scene.session.idOrderToDelete);
   await incrementNumericValue("users", user.id, "count_orders", -1)
-  await ctx.reply(
+  await reply(ctx,
     Format.fmt`Order deleted`
   );
   ctx.scene.reset();

@@ -108,19 +108,19 @@ export const getExplorer = (chain: SupportedChain): string => {
   switch (chain) {
     case 'base':
       return explorerMap[ChainId.BASE]
-      case 'arbitrum_one':
+    case 'arbitrum_one':
       return explorerMap[ChainId.ARBITRUM_ONE]
-      case 'blast':
+    case 'blast':
       return explorerMap[ChainId.BLAST]
-      case 'bnb':
+    case 'bnb':
       return explorerMap[ChainId.BNB]
-      case 'mainnet':
+    case 'mainnet':
       return explorerMap[ChainId.MAINNET]
-      case 'optimism':
+    case 'optimism':
       return explorerMap[ChainId.OPTIMISM]
-      case 'polygon':
+    case 'polygon':
       return explorerMap[ChainId.POLYGON]
-      case 'zora':
+    case 'zora':
       return explorerMap[ChainId.ZORA]
     default:
       break;
@@ -149,10 +149,11 @@ export const emojs = {
   key: '🔑',
   seed: '🌱',
   error: '😭',
-  loading: '🏃‍♂️',
+  loading: '⌛️',//'🏃‍♂️',
   network: '🌎',
   route: '📍',
-  buy: '➕',
-  sell: '➖',
-  view: '👀'
+  buy: '🔼',
+  sell: '🔽',
+  view: '👀',
+  date: '⏱'
 }
