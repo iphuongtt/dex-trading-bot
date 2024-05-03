@@ -1,9 +1,9 @@
-import { Context, Format } from "telegraf"
+import { Context, Format, Markup } from "telegraf"
 import { BotContext } from "./context"
 import CryptoJS from 'crypto-js'
 import { Alchemy, Network } from "alchemy-sdk";
 import { ethers as ethersNew, isAddress } from "ethers-new"
-import { ethers } from "ethers";
+import { ethers, BigNumber } from "ethers";
 import { AlphaRouter, SwapType } from "@uniswap/smart-order-router";
 import {
   CurrencyAmount,
@@ -14,12 +14,13 @@ import {
 } from "@uniswap/sdk-core";
 import { getChainId, getChainRPC } from "../libs"
 import { getDoc, create, getDocRef, getListDocs } from "../libs/firestore"
-import { SupportedChain } from "../types";
-import { User, Token as TokenModel } from "../models";
-import { getExplorer } from "../libs/constants2";
+import { SupportedChain, supportedChains } from "../types";
+import { User, Token as TokenModel, Wallet } from "../models";
+import { emojs, getExplorer } from "../libs/constants2";
 import { FmtString } from "telegraf/typings/format";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 import _ from "lodash";
+import erc20Abi from "../tokenABI/erc20.json";
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -182,7 +183,7 @@ export const getACLNetwork = (chain: SupportedChain): Network | undefined => {
   return undefined
 }
 
-export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) => {
+const getAlchemy = (chain: SupportedChain) => {
   const _apiKey = getACLAPIKey(chain)
   let netWork = getACLNetwork(chain)
   const _chainId = getChainId(chain);
@@ -190,26 +191,40 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
     return null
   }
   if (_apiKey && netWork) {
-    if (isAddress(tokenAddress)) {
-      const token: any = await getDoc("tokens", null, [
-        {
-          field: 'address', operation: '==', value: tokenAddress.toLowerCase()
-        },
-        {
-          field: 'chain_id', operation: '==', value: _chainId
-        }
-      ])
-      if (!token) {
-        const config = {
-          apiKey: _apiKey,
-          network: netWork,
-        };
-        const alchemy = new Alchemy(config);
+    const config = {
+      apiKey: _apiKey,
+      network: netWork,
+    };
+    return new Alchemy(config);
+  }
+  return null
+}
+
+export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) => {
+  const _chainId = getChainId(chain);
+  if (!_chainId) {
+    return null
+  }
+  if (isAddress(tokenAddress)) {
+    const token: any = await getDoc("tokens", null, [
+      {
+        field: 'address', operation: '==', value: tokenAddress.toLowerCase()
+      },
+      {
+        field: 'chain_id', operation: '==', value: _chainId
+      }
+    ])
+    if (!token) {
+      const alchemy = getAlchemy(chain)
+      if (alchemy) {
         // The token address we want to query for metadata
         const tokenMetaData = await alchemy.core.getTokenMetadata(
           tokenAddress
-        )
-        if (tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
+        ).catch(e => {
+          console.log('getTokenMetadata', e)
+          return null
+        })
+        if (tokenMetaData && tokenMetaData.decimals && tokenMetaData.name && tokenMetaData.symbol) {
           const _tokenRef = getDocRef("tokens");
           await create('tokens', _tokenRef.id, {
             ...tokenMetaData,
@@ -219,26 +234,25 @@ export const getTokenInfo = async (chain: SupportedChain, tokenAddress: string) 
           })
           return new TokenModel(tokenAddress.toLowerCase(), tokenMetaData.decimals, tokenMetaData.symbol, tokenMetaData.name, chain, _chainId, tokenMetaData.logo ? tokenMetaData.logo : undefined, _tokenRef.id)
         }
-        return null
-      } else {
-        return new TokenModel(tokenAddress.toLowerCase(), token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined, token.id)
       }
+      return null
     } else {
-      const tokens: any = await getListDocs("tokens", [
-        {
-          field: 'symbol', operation: '==', value: _.replace(tokenAddress, '/', '').toUpperCase()
-        },
-        {
-          field: 'chain_id', operation: '==', value: _chainId
-        }
-      ])
-      if (tokens.length !== 1) {
-        return false
-      }
-      return new TokenModel(tokens[0].address.toLowerCase(), tokens[0].decimals, tokens[0].symbol, tokens[0].name, chain, _chainId, tokens[0].logo ? tokens[0].logo : undefined, tokens[0].id)
+      return new TokenModel(tokenAddress.toLowerCase(), token.decimals, token.symbol, token.name, chain, _chainId, token.logo ? token.logo : undefined, token.id)
     }
+  } else {
+    const tokens: any = await getListDocs("tokens", [
+      {
+        field: 'symbol', operation: '==', value: _.replace(tokenAddress, '/', '').toUpperCase()
+      },
+      {
+        field: 'chain_id', operation: '==', value: _chainId
+      }
+    ])
+    if (tokens.length !== 1) {
+      return false
+    }
+    return new TokenModel(tokens[0].address.toLowerCase(), tokens[0].decimals, tokens[0].symbol, tokens[0].name, chain, _chainId, tokens[0].logo ? tokens[0].logo : undefined, tokens[0].id)
   }
-  return null
 }
 
 
@@ -373,4 +387,98 @@ export const genChainLink = (chain: any) => {
   }
   return Format.link(chain.toUpperCase(), `${getExplorer(chain)}`
   )
+}
+
+
+export const selectChainBtn = (selected?: string | null) => {
+  const btns = [];
+  const isSelected = selected ? true : false
+  for (const _chain of supportedChains) {
+    btns.push([
+      Markup.button.callback(`${selected && selected === _chain ? emojs.checked : ''} ${_.toUpper(_chain)}`, `${isSelected ? 'no_action' : `select_chain_${_chain}`}`),
+    ]);
+  }
+  btns.push([
+    Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel'),
+  ]);
+  return Markup.inlineKeyboard(btns);
+};
+
+export const selectWalletBtn = (wallets: Wallet[]) => {
+  const btns = [];
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet}`,
+        `select_wallet_${wallets[i].wallet}`
+      ),
+    ]);
+  }
+  btns.push([
+    Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel'),
+  ]);
+  return Markup.inlineKeyboard(btns);
+};
+
+
+export const getAllTokenInWallet = async (chain: SupportedChain, wallet: string) => {
+  const alchemy = getAlchemy(chain)
+  if (alchemy && isAddress(wallet)) {
+    const balances = await alchemy.core.getTokenBalances('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37').catch(e => {
+      console.log('getTokenBalances', e)
+      return null
+    });
+    if (!balances) {
+      return null
+    }
+    // Remove tokens with zero balance
+    const nonZeroBalances = balances.tokenBalances.filter((token) => {
+      return token.tokenBalance !== "0";
+    });
+    console.log(`Token balances of ${wallet} \n`);
+    // Counter for SNo of final output
+    let i = 1;
+    // Loop through all tokens with non-zero balance
+    for (let token of nonZeroBalances) {
+      // Get balance of token
+      let balance: any = token.tokenBalance;
+      // Get metadata of token
+      const metadata = await alchemy.core.getTokenMetadata(token.contractAddress).catch(e => {
+        console.log('getTokenMetadata', e)
+        return null
+      });
+      if (metadata) {
+        const { decimals, symbol, name } = metadata
+        if (decimals && symbol && name) {
+          // Compute token balance in human-readable format
+          balance = balance / Math.pow(10, decimals);
+          balance = balance.toFixed(8);
+          // Print name, balance, and symbol of token
+          console.log(`${i++}. ${name}: ${balance} ${symbol}`);
+        }
+      }
+    }
+  }
+  return null
+}
+
+export const getBalance = async (chain: SupportedChain, wallet: string, tokenAddress: string, isNavite: boolean = false): Promise<BigNumber | null> => {
+  const _rpc = getChainRPC(chain);
+  if (!_rpc) {
+    return null
+  }
+  const ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
+  // Handle ETH directly
+  if (isNavite) {
+    return await ethersProvider.getBalance('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37');
+  }
+  // Get currency otherwise
+  const walletContract = new ethers.Contract(
+    tokenAddress,
+    erc20Abi,
+    ethersProvider
+  );
+  console.log({ tokenAddress })
+  const balance: BigNumber = await walletContract.balanceOf('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37');
+  return balance;
 }

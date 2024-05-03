@@ -1,4 +1,4 @@
-import { Format, Scenes } from "telegraf";
+import { Format, Markup, Scenes } from "telegraf";
 import {
   BotContext,
   cancelBtn,
@@ -10,13 +10,14 @@ import { ethers, isAddress } from "ethers-new";
 import {
   create,
   getDoc,
+  getListDocs,
   getServerTimeStamp,
   incrementNumericValue,
   isExists,
   updateDoc,
 } from "../../libs/firestore";
-import { removeUndefined } from "../../libs";
-import { deleteLastMessage, encrypt, isVIP, reply } from "../util";
+import { getDAIAddr, getUSDCAddr, getUSDTAddr, getWETHAddr, isNumeric, removeUndefined } from "../../libs";
+import { deleteLastMessage, deleteLastMessages, encrypt, genAddressLink, genChainLink, getAllTokenInWallet, getBalance, getChain, getTokenInfo, isVIP, reply, selectChainBtn, selectWalletBtn } from "../util";
 import {
   leaveSceneWalletStep1,
   leaveSceneWalletStep2,
@@ -26,6 +27,7 @@ import {
 import { emojs } from "../../libs/constants2";
 import { Wallet } from "../../models";
 import _ from "lodash";
+import JSBI from "jsbi";
 
 const addWalletWizard = new Scenes.WizardScene<BotContext>(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene
@@ -339,6 +341,100 @@ const deleteCurrentWalletWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
+
+
+
+//=============================
+const transferWizard = new Scenes.WizardScene<BotContext>(
+  "transferWizard",
+  async (ctx) => {
+    await deleteLastMessage(ctx);
+    await reply(ctx, `${emojs.order} Add new order:`);
+    await reply(ctx, "Please select chain", selectChainBtn());
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    if (!ctx.scene.session.transferChain) {
+      return ctx.scene.leave();
+    }
+    if (ctx.message && "text" in ctx.message && ctx.message.text) {
+      let transferTokenAddr = null;
+      if (ctx.message.text.toUpperCase() === "/WETH" || ctx.message.text.toUpperCase() === "WETH") {
+        transferTokenAddr = getWETHAddr(ctx.scene.session.transferChainId);
+      } else if (ctx.message.text.toUpperCase() === "USDT" || ctx.message.text.toUpperCase() === "/USDT") {
+        transferTokenAddr = getUSDTAddr(ctx.scene.session.transferChainId);
+      } else if (ctx.message.text.toUpperCase() === "USDC" || ctx.message.text.toUpperCase() === "/USDC") {
+        transferTokenAddr = getUSDCAddr(ctx.scene.session.transferChainId);
+      } else if (ctx.message.text.toUpperCase() === "DAI" || ctx.message.text.toUpperCase() === "/DAI") {
+        transferTokenAddr = getDAIAddr(ctx.scene.session.transferChainId);
+      }
+      else if (isAddress(ctx.message.text)) {
+        transferTokenAddr = ctx.message.text;
+      }
+      if (transferTokenAddr) {
+        const transferTokenData = await getTokenInfo(
+          ctx.scene.session.transferChain,
+          transferTokenAddr
+        );
+        if (transferTokenData) {
+          ctx.scene.session.transferTokenAddr = transferTokenAddr
+          ctx.scene.session.transferTokenData = transferTokenData
+          const balance = await getBalance(ctx.scene.session.transferChain, ctx.scene.session.transferWallet, ctx.scene.session.transferTokenAddr)
+          if (balance) {
+            const bigZero = JSBI.BigInt(0);
+            if (JSBI.EQ(balance, bigZero)) {
+              await reply(ctx,
+                `${emojs.error} Insufficient balance`
+              );
+              return ctx.scene.leave()
+            } else {
+              console.log({
+                real: parseFloat(ethers.formatUnits(balance.toString(), ctx.scene.session.transferTokenData.decimals))
+              })
+              await reply(ctx, "Please enter received wallet address");
+              return ctx.wizard.next();
+            }
+          } else {
+            await reply(ctx,
+              `${emojs.error} Insufficient balance`
+            );
+            return ctx.scene.leave()
+          }
+        } else {
+          await reply(ctx,
+            `${emojs.error} The token address is not in a valid format`
+          );
+        }
+      } else {
+        await reply(ctx,
+          `${emojs.error} Token address ${transferTokenAddr} not found`
+        );
+      }
+    } else {
+      await reply(ctx,
+        `${emojs.error} The token address is not in a valid format`
+      );
+    }
+    return ctx.scene.leave();
+  },
+  async (ctx) => {
+    if (!ctx.scene.session.transferChain) {
+      await reply(ctx, 'Error')
+      return ctx.scene.leave();
+    }
+    if (ctx.message && "text" in ctx.message && ctx.message.text && isAddress(ctx.message.text)) {
+      ctx.scene.session.transferReceiveAddress = ctx.message.text
+
+    } else {
+      await reply(ctx,
+        `${emojs.error} The receive wallet address is not in a valid format`
+      );
+    }
+    return ctx.scene.leave();
+  },
+);
+//=============================
+
 addWalletWizard.action("leave", leaveSceneWalletStep0);
 addWalletWizard.action("leave_step_1", leaveSceneWalletStep1);
 editWalletWizard.action("leave", leaveSceneWalletStep0);
@@ -358,11 +454,73 @@ editCurrentWalletWizard.action("leave", async (ctx) => {
   return ctx.scene.leave()
 })
 
+
+
+
+transferWizard.action(/select_chain_[a-z_]+/, async (ctx) => {
+  const _math = ctx.match[0];
+  const _chain = _.replace(_math, "select_chain_", "");
+  const chainInfo = getChain(_chain);
+  if (chainInfo && _chain) {
+    ctx.scene.session.transferChain = chainInfo.chain;
+    ctx.scene.session.transferChainId = chainInfo.chainId;
+    await deleteLastMessage(ctx)
+    const chainLink = genChainLink(_chain)
+    if (chainLink) {
+      const teleUser = ctx.from;
+      if (!teleUser) {
+        await reply(ctx, "User not found");
+        return ctx.scene.leave();
+      }
+      const user: any = await getDoc("users", null, [
+        { field: "telegram_id", operation: "==", value: teleUser.id },
+      ]);
+      if (!user) {
+        await reply(ctx, "User not found");
+        return ctx.scene.leave();
+      }
+      const wallets = await getListDocs("wallets", [
+        { field: "user_id", operation: "==", value: user.id },
+      ]);
+      if (!wallets || wallets.length < 0) {
+        await reply(ctx, "Wallet not found");
+        return ctx.scene.leave();
+      }
+      await reply(ctx, Format.fmt`${emojs.checked} Chain: ${_chain}`)
+      return reply(ctx, "Please select the wallet", selectWalletBtn(wallets));
+    } else {
+      await reply(ctx, `The chain ${_chain} is not supported`);
+      ctx.scene.leave();
+    }
+  } else {
+    await reply(ctx, `The chain ${_chain} is not supported`);
+    ctx.scene.leave();
+  }
+});
+
+transferWizard.action(/select_wallet_[a-zA-Z0-9]+/, async (ctx) => {
+  const _math = ctx.match[0];
+  const _wallet = _.replace(_math, "select_wallet_", "");
+  ctx.scene.session.transferWallet = _wallet;
+  if (!ctx.scene.session.transferChain) {
+    await reply(ctx, `The chain is not supported`);
+    return ctx.scene.leave();
+  }
+  // const walletLink = genAddressLink(ctx.scene.session.transferChain, _wallet)
+  await reply(ctx, Format.fmt`${emojs.checked} Wallet: ${Format.code(_wallet)}`)
+  await reply(ctx,
+    Format.fmt`Please enter the ERC-20 token address or /WETH, /USDC, /USDT, /DAI`, Markup.inlineKeyboard([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')])
+  );
+});
+
+
+
 export const walletScenes = [
   // addWalletWizard,
   deleteWalletWizard,
   editWalletWizard,
   createWalletWizard,
   editCurrentWalletWizard,
-  deleteCurrentWalletWizard
+  deleteCurrentWalletWizard,
+  transferWizard
 ];

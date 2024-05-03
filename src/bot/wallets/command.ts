@@ -152,6 +152,9 @@ export const showWalletMenus = async (ctx: Context) => {
         Markup.button.callback("💼 My wallets", "get_my_wallets"),
         Markup.button.callback("➕ Create wallet", "create_wallet"),
       ],
+      [
+        Markup.button.callback("Transfer token", "transfer_token"),
+      ],
       [Markup.button.callback('🔙 Back', 'back_to_main_menu')]
     ])
   );

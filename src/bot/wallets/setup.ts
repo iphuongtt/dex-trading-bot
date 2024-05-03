@@ -20,12 +20,12 @@ export const setupWallet = (bot: Telegraf<BotContext>) => {
   bot.command(/edit_wl_[a-zA-Z0-9]+/, async (ctx) => {
     const _math = ctx.match[0];
     const _walletId = _.replace(_math, "edit_wl_", "");
-    return ctx.scene.enter("editCurrentWalletWizard", {idWalletToEdit: _walletId})
+    return ctx.scene.enter("editCurrentWalletWizard", { idWalletToEdit: _walletId })
   });
   bot.command(/delete_wl_[a-zA-Z0-9]+/, async (ctx) => {
     const _math = ctx.match[0];
     const _walletId = _.replace(_math, "delete_wl_", "");
-    return ctx.scene.enter("deleteCurrentWalletWizard", {idWalletToDelete: _walletId})
+    return ctx.scene.enter("deleteCurrentWalletWizard", { idWalletToDelete: _walletId })
   });
   //Bot Actions
   // bot.action("add_wallet", async (ctx) => ctx.scene.enter("addWalletWizard"));
@@ -36,4 +36,5 @@ export const setupWallet = (bot: Telegraf<BotContext>) => {
   bot.action("get_my_wallets", listWallets);
   bot.action("show_wallet_menu", getWalletMenus);
   bot.action("create_wallet", async (ctx) => ctx.scene.enter("createWalletWizard"));
+  bot.action("transfer_token", async (ctx) => ctx.scene.enter("transferWizard"));
 };
