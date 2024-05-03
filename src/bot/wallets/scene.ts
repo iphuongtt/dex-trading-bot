@@ -17,7 +17,7 @@ import {
   updateDoc,
 } from "../../libs/firestore";
 import { getDAIAddr, getUSDCAddr, getUSDTAddr, getWETHAddr, isNumeric, removeUndefined } from "../../libs";
-import { deleteLastMessage, deleteLastMessages, encrypt, genAddressLink, genChainLink, getAllTokenInWallet, getBalance, getChain, getTokenInfo, isVIP, reply, selectChainBtn, selectWalletBtn } from "../util";
+import { deleteLastMessage, deleteLastMessages, encrypt, estimateGas, genAddressLink, genChainLink, getAllTokenInWallet, getBalance, getChain, getTokenInfo, isVIP, reply, selectChainBtn, selectWalletBtn } from "../util";
 import {
   leaveSceneWalletStep1,
   leaveSceneWalletStep2,
@@ -349,7 +349,7 @@ const transferWizard = new Scenes.WizardScene<BotContext>(
   "transferWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
-    await reply(ctx, `${emojs.order} Add new order:`);
+    await reply(ctx, `${emojs.order} Transfer token:`);
     await reply(ctx, "Please select chain", selectChainBtn());
     return ctx.wizard.next();
   },
@@ -388,9 +388,10 @@ const transferWizard = new Scenes.WizardScene<BotContext>(
               );
               return ctx.scene.leave()
             } else {
-              console.log({
-                real: parseFloat(ethers.formatUnits(balance.toString(), ctx.scene.session.transferTokenData.decimals))
-              })
+              await deleteLastMessages(ctx, 2)
+              const tokenBalance = parseFloat(ethers.formatUnits(balance.toString(), ctx.scene.session.transferTokenData.decimals))
+              await reply(ctx, `${emojs.balance} Balance: ${tokenBalance}`)
+              await estimateGas(ctx.scene.session.transferChain, ctx.scene.session.transferWallet, ctx.scene.session.transferTokenAddr)
               await reply(ctx, "Please enter received wallet address");
               return ctx.wizard.next();
             }
@@ -506,7 +507,7 @@ transferWizard.action(/select_wallet_[a-zA-Z0-9]+/, async (ctx) => {
     await reply(ctx, `The chain is not supported`);
     return ctx.scene.leave();
   }
-  // const walletLink = genAddressLink(ctx.scene.session.transferChain, _wallet)
+  await deleteLastMessage(ctx)
   await reply(ctx, Format.fmt`${emojs.checked} Wallet: ${Format.code(_wallet)}`)
   await reply(ctx,
     Format.fmt`Please enter the ERC-20 token address or /WETH, /USDC, /USDT, /DAI`, Markup.inlineKeyboard([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')])

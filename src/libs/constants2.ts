@@ -155,5 +155,6 @@ export const emojs = {
   buy: '🔼',
   sell: '🔽',
   view: '👀',
-  date: '⏱'
+  date: '⏱',
+  balance: '💵'
 }

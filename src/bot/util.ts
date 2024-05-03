@@ -473,12 +473,28 @@ export const getBalance = async (chain: SupportedChain, wallet: string, tokenAdd
     return await ethersProvider.getBalance('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37');
   }
   // Get currency otherwise
-  const walletContract = new ethers.Contract(
+  const tokenContract = new ethers.Contract(
     tokenAddress,
     erc20Abi,
     ethersProvider
   );
-  console.log({ tokenAddress })
-  const balance: BigNumber = await walletContract.balanceOf('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37');
+  const balance: BigNumber = await tokenContract.balanceOf('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37');
   return balance;
+}
+
+export const estimateGas = async (chain: SupportedChain, wallet: string, tokenAddress: string, isNavite: boolean = false) => {
+  const _rpc = getChainRPC(chain);
+  if (!_rpc) {
+    return null
+  }
+  const ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
+  const ethersSigner = new ethers.Wallet('0x551a6f7544cd708dcf1198aaad59a3309a6802bb3a5ce11b3774d40bc60b8e4f', ethersProvider);
+  // Get currency otherwise
+  const tokenContract = new ethers.Contract(
+    tokenAddress,
+    erc20Abi,
+    ethersSigner
+  );
+  const estimation = await tokenContract.estimateGas.transfer('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37', 100);
+  console.log(estimation)
 }
