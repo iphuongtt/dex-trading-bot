@@ -15,12 +15,26 @@ import {
 import { getChainId, getChainRPC } from "../libs"
 import { getDoc, create, getDocRef, getListDocs } from "../libs/firestore"
 import { SupportedChain, supportedChains } from "../types";
-import { User, Token as TokenModel, Wallet } from "../models";
+import { User, Token as TokenModel, Wallet, WalletWhiteList } from "../models";
 import { emojs, getExplorer } from "../libs/constants2";
 import { FmtString } from "telegraf/typings/format";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
-import _ from "lodash";
+import _, { chain } from "lodash";
 import erc20Abi from "../tokenABI/erc20.json";
+import axios from "axios";
+
+const getETHPrice = async () => {
+  const resp = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd`).catch(e => {
+    return {
+      data: {
+        ethereum: {
+          usd: 0
+        }
+      }
+    }
+  })
+  return resp.data.ethereum.usd
+}
 
 export const deleteMessage = async (ctx: Context, msgId: number) => {
   return ctx.deleteMessage(msgId).catch(e => {
@@ -420,6 +434,21 @@ export const selectWalletBtn = (wallets: Wallet[]) => {
   return Markup.inlineKeyboard(btns);
 };
 
+export const selectWalletIdBtn = (wallets: Wallet[]) => {
+  const btns = [];
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet}`,
+        `select_wallet_${wallets[i].id}`
+      ),
+    ]);
+  }
+  btns.push([
+    Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel'),
+  ]);
+  return Markup.inlineKeyboard(btns);
+};
 
 export const getAllTokenInWallet = async (chain: SupportedChain, wallet: string) => {
   const alchemy = getAlchemy(chain)
@@ -482,19 +511,61 @@ export const getBalance = async (chain: SupportedChain, wallet: string, tokenAdd
   return balance;
 }
 
-export const estimateGas = async (chain: SupportedChain, wallet: string, tokenAddress: string, isNavite: boolean = false) => {
+const getSigner = async (telegramId: number, chain: SupportedChain, walletId: string) => {
   const _rpc = getChainRPC(chain);
   if (!_rpc) {
     return null
   }
   const ethersProvider = new ethers.providers.JsonRpcProvider(_rpc);
-  const ethersSigner = new ethers.Wallet('0x551a6f7544cd708dcf1198aaad59a3309a6802bb3a5ce11b3774d40bc60b8e4f', ethersProvider);
+  const _wallet: any = await getDoc("wallets", walletId).catch(e => {
+    console.log(e)
+  });
+  if (!_wallet || !_wallet.private_key) {
+    return false;
+  }
+  const _pri = decrypt(telegramId, _wallet.private_key);
+  if (!_pri) {
+    return false;
+  }
+  return new ethers.Wallet(_pri, ethersProvider);
+}
+
+export const estimateGasTransfer = async (telegramId: number, chain: SupportedChain, walletId: string, tokenAddress: string, tokenDecimals: number, receiveAddr: string, amount: number, isNavite: boolean = false) => {
+  const signer = await getSigner(telegramId, chain, walletId)
+  if (!signer) {
+    return false
+  }
   // Get currency otherwise
   const tokenContract = new ethers.Contract(
     tokenAddress,
     erc20Abi,
-    ethersSigner
+    signer
   );
-  const estimation = await tokenContract.estimateGas.transfer('0xd63fdE16c98D2b923B020c0727f3EfD3364fDf37', 100);
-  console.log(estimation)
+  const amountInWei = ethers.utils.parseUnits(amount.toString(), tokenDecimals);
+  const gasPrice = await signer.getGasPrice()
+  const estimation = await tokenContract.estimateGas.transfer(receiveAddr, amountInWei);
+  const txPriceWei = gasPrice.mul(estimation)
+  const txPriceEth = ethers.utils.formatEther(txPriceWei)
+  const priceETH = await getETHPrice()
+  const txPriceUSD = parseFloat(txPriceEth) * priceETH;
+  return {
+    txPriceUSD: txPriceUSD.toFixed(2),
+    txPriceEth: parseFloat(txPriceEth).toFixed(8)
+  }
 }
+
+export const selectWalletWLBtn = (wallets: WalletWhiteList[]) => {
+  const btns = [];
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet}`,
+        `swlw_${wallets[i].wallet}`
+      ),
+    ]);
+  }
+  btns.push([
+    Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel'),
+  ]);
+  return Markup.inlineKeyboard(btns);
+};

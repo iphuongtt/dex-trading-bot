@@ -44,6 +44,7 @@ export type Collection =
   | "menus"
   | "tokens"
   | "wallets"
+  | "wallets_whitelist"
   | "orders"
   | "users"
   | "logs"

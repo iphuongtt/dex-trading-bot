@@ -36,7 +36,8 @@ export const setupBot = (bot: Telegraf<BotContext>) => {
         is_admin: false,
         is_vip: false,
         count_orders: 0,
-        count_wallets: 0
+        count_wallets: 0,
+        count_wallets_wl: 0
       };
       create("users", null, removeUndefined(newUser)).then((result) => {
         return reply(ctx, `Hello ${teleUser.first_name}! Welcome to the Mybestcrypto telegram bot.`)

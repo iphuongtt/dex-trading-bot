@@ -13,5 +13,6 @@ export interface User {
     is_admin: boolean;
     is_vip: boolean;
     count_wallets: number;
+    count_wallets_wl: number;
     count_orders: number
 }

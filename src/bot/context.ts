@@ -26,6 +26,10 @@ export const yesOrNoInlineKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback(`${emojs.yes} Yes`, "yes"), Markup.button.callback(`${emojs.no} No`, "no")]
 ])
 
+export const confirmInlineKeyboard = Markup.inlineKeyboard([
+  [Markup.button.callback(`${emojs.yes} Confirm`, "confirm"), Markup.button.callback(`${emojs.no} Cancel`, "not_confirm")]
+])
+
 export const cancelBtn = Markup.inlineKeyboard([
   Markup.button.callback(`${emojs.cancel} Cancel`, "leave"),
 ]);

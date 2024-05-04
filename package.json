@@ -14,7 +14,8 @@
     "clean": "clear dist *.tsbuildinfo .eslintcache",
     "rebuild": "yarn run clean && yarn run build",
     "predev": "npm run build",
-    "dev": "clear && nodemon -r source-map-support/register -r dotenv/config ."
+    "dev": "clear && nodemon -r source-map-support/register -r dotenv/config .",
+    "tools": "npx ts-node src/tools.ts"
   },
   "keywords": [],
   "author": "",

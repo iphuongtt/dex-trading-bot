@@ -15,4 +15,8 @@ export interface WalletSession extends Scenes.WizardSessionData {
     transferChainId: ChainId;
     transferReceiveAddress: string;
     transferWallet: string;
+    transferWalletId: string;
+    transferDone: boolean;
+    transferAmount: number;
+    tokenBalance: number
 }

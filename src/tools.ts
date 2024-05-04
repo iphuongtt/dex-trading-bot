@@ -30,7 +30,7 @@ const parseSwapLog = (logs: object[], tokenIn: Token, tokenOut: Token) => {
   const lastSwapEvent = swapLogs.slice(-1)[0]
   // // decode the data
   const swapInterface = new ethers.Interface('[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":true,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"int256","name":"amount0","type":"int256"},{"indexed":false,"internalType":"int256","name":"amount1","type":"int256"},{"indexed":false,"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"int24","name":"tick","type":"int24"}],"name":"Swap","type":"event"}]')
-  
+
   if ('topics' in lastSwapEvent && 'data' in lastSwapEvent && lastSwapEvent.topics && _.isArray(lastSwapEvent.topics) && lastSwapEvent.data && _.isString(lastSwapEvent.data)) {
     const parsed = swapInterface.parseLog({
       topics: lastSwapEvent.topics,
@@ -49,7 +49,7 @@ const parseSwapLog = (logs: object[], tokenIn: Token, tokenOut: Token) => {
 
 
 }
-// console.log(encrypt(0, '', ''))
+console.log(encrypt(473734823, 'mN4QxjqS7N075p05JnXuUXAY5hl67m', '0x7089496c075752949424a3e6d2040de4b52872da'))
 
 // Setup: npm install alchemy-sdk
 
@@ -61,9 +61,9 @@ const config = {
 const alchemy = new Alchemy(config);
 
 // The token address we want to query for metadata
-alchemy.core.getTokenMetadata(
-  "0x4200000000000000000000000000000000000006"
-).then(metaData => {
-  console.log(metaData)
-});
+// alchemy.core.getTokenMetadata(
+//   "0x4200000000000000000000000000000000000006"
+// ).then(metaData => {
+//   console.log(metaData)
+// });
 
