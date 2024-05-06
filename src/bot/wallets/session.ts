@@ -1,7 +1,8 @@
 import { Scenes } from "telegraf";
 import { SupportedChain } from "../../types";
-import { Token as TokenModel } from "../../models"
+import { Token as TokenModel, Wallet, WalletWhiteList } from "../../models"
 import { ChainId } from "@uniswap/sdk-core";
+import { Message } from "telegraf/typings/core/types/typegram";
 
 export interface WalletSession extends Scenes.WizardSessionData {
     walletAddress: string;
@@ -23,4 +24,7 @@ export interface WalletSession extends Scenes.WizardSessionData {
     walletWLName: string;
     idWLWalletToDelete: string;
     idWLWalletToEdit: string;
+    lastMsgFromBot: Message.TextMessage;
+    wallets: Wallet[];
+    walletsWL: WalletWhiteList[];
 }

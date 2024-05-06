@@ -493,53 +493,6 @@ export const genChainLink = (chain: any) => {
   return Format.link(chain.toUpperCase(), `${getExplorer(chain)}`);
 };
 
-export const selectChainBtn = (selected?: string | null) => {
-  const btns = [];
-  const isSelected = selected ? true : false;
-  for (const _chain of supportedChains) {
-    btns.push([
-      Markup.button.callback(
-        `${selected && selected === _chain ? emojs.checked : ""} ${_.toUpper(
-          _chain
-        )}`,
-        `${isSelected ? "no_action" : `select_chain_${_chain}`}`
-      ),
-    ]);
-  }
-  btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, "cancel")]);
-  return Markup.inlineKeyboard(btns);
-};
-
-export const selectWalletBtn = (wallets: Wallet[]) => {
-  const btns = [];
-  for (let i = 0; i < wallets.length; i++) {
-    btns.push([
-      Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
-        }`,
-        `select_wallet_${wallets[i].wallet}`
-      ),
-    ]);
-  }
-  btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, "cancel")]);
-  return Markup.inlineKeyboard(btns);
-};
-
-export const selectWalletIdBtn = (wallets: Wallet[]) => {
-  const btns = [];
-  for (let i = 0; i < wallets.length; i++) {
-    btns.push([
-      Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
-        }`,
-        `select_wallet_${wallets[i].id}`
-      ),
-    ]);
-  }
-  btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, "cancel")]);
-  return Markup.inlineKeyboard(btns);
-};
-
 export const getAllTokenInWallet = async (
   chain: SupportedChain,
   wallet: string
@@ -679,21 +632,6 @@ export const estimateGasTransfer = async (
   };
 };
 
-export const selectWalletWLBtn = (wallets: WalletWhiteList[]) => {
-  const btns = [];
-  for (let i = 0; i < wallets.length; i++) {
-    btns.push([
-      Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
-        }`,
-        `swlw_${wallets[i].wallet}`
-      ),
-    ]);
-  }
-  btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, "cancel")]);
-  return Markup.inlineKeyboard(btns);
-};
-
 export const getTeleUser = async (ctx: BotContext) => {
   const teleUser = ctx.from;
   if (!teleUser) {
@@ -776,7 +714,8 @@ export const transferERC20 = async (
 };
 
 
-export const selectTokenBtn = (chain: SupportedChain) => {
+export const selectTokenBtn = (chain: SupportedChain, selected?: string) => {
+  const isSelected = selected ? true : false;
   const btns = [];
   const chainId = getChainId(chain)
   const tokens = []
@@ -802,13 +741,86 @@ export const selectTokenBtn = (chain: SupportedChain) => {
     for (let i = 0; i < tokens.length; i++) {
       btns.push([
         Markup.button.callback(
-          `${emojs.address} ${tokens[i].name} - ${tokens[i].address
+          `${selected && selected === tokens[i].address ? emojs.checked : ""} ${tokens[i].name} - ${tokens[i].address
           }`,
-          `stkn_${tokens[i].address}`
+          `${isSelected ? "no_action" : `stkn_${tokens[i].address}`}`
         ),
       ]);
     }
   }
+  if (!isSelected) {
+    btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]);
+  }
+  return Markup.inlineKeyboard(btns);
+};
+
+
+export const selectWalletIdBtn = (wallets: Wallet[], selected?: string) => {
+  const btns = [];
+  const isSelected = selected ? true : false;
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${selected && selected === wallets[i].id ? emojs.checked : ""} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
+        }`,
+        `${isSelected ? "no_action" : `select_wallet_${wallets[i].id}`}`
+      ),
+    ]);
+  }
+  if (!isSelected) {
+    btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]);
+  }
+  return Markup.inlineKeyboard(btns);
+};
+
+export const selectChainBtn = (selected?: string | null) => {
+  const btns = [];
+  const isSelected = selected ? true : false;
+  for (const _chain of supportedChains) {
+    btns.push([
+      Markup.button.callback(
+        `${selected && selected === _chain ? emojs.checked : ""} ${_.toUpper(
+          _chain
+        )}`,
+        `${isSelected ? "no_action" : `select_chain_${_chain}`}`
+      ),
+    ]);
+  }
+  if (!isSelected) {
+    btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]);
+  }
+  return Markup.inlineKeyboard(btns);
+};
+
+export const selectWalletBtn = (wallets: Wallet[]) => {
+  const btns = [];
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
+        }`,
+        `select_wallet_${wallets[i].wallet}`
+      ),
+    ]);
+  }
   btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, "cancel")]);
+  return Markup.inlineKeyboard(btns);
+};
+
+export const selectWalletWLBtn = (wallets: WalletWhiteList[], selected?: string) => {
+  const btns = [];
+  const isSelected = selected ? true : false;
+  for (let i = 0; i < wallets.length; i++) {
+    btns.push([
+      Markup.button.callback(
+        `${selected && selected === wallets[i].wallet ? emojs.checked : ""} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
+        }`,
+        `${isSelected ? "no_action" : `swlw_${wallets[i].wallet}`}`
+      ),
+    ]);
+  }
+  if (!isSelected) {
+    btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]);
+  }
   return Markup.inlineKeyboard(btns);
 };
