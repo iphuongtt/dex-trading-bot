@@ -44,6 +44,7 @@ import {
   selectWalletWLBtn,
   selectTokenBtn,
   transferERC20,
+  editMessage,
 } from "../../util";
 import {
   leaveSceneWalletStep1,
@@ -351,10 +352,10 @@ const processTransferTokenAddr = async (
   tokenAddr: string
 ): Promise<boolean> => {
   const teleUser = ctx.from;
-    if (!teleUser) {
-      await reply(ctx, "User not found");
-      return false
-    }
+  if (!teleUser) {
+    await reply(ctx, "User not found");
+    return false
+  }
   if (!isAddress(tokenAddr)) {
     await reply(ctx, `${emojs.error} Token address is invalid format`);
     return false
@@ -407,22 +408,25 @@ const processReceiveWallet = async (
     ctx,
     Format.fmt`${emojs.checked} To: ${Format.code(wallet.toLowerCase())}`
   );
-  let msg = await reply(
+  let msgLoadingBalance = await reply(
     ctx,
-    `${emojs.loading} Getting your token balance, Please wait...`
+    Format.fmt`${emojs.balance} Balance: ${emojs.loading} Loading, please wait...`
   );
+  if (!msgLoadingBalance) {
+    return false
+  }
   const balance = await getBalance(
     ctx.scene.session.transferChain,
     ctx.scene.session.transferWallet,
     ctx.scene.session.transferTokenAddr
   );
-  if (msg) {
-    await deleteMessage(ctx, msg.message_id);
-  }
+  // if (msg) {
+  //   await deleteMessage(ctx, msg.message_id);
+  // }
   if (balance) {
     const bigZero = JSBI.BigInt(0);
     if (JSBI.EQ(balance, bigZero)) {
-      await reply(ctx, `${emojs.error} Insufficient balance`);
+      await editMessage(ctx, `${emojs.balance} Balance: Insufficient ${emojs.error}`, msgLoadingBalance)
       return false;
     } else {
       const tokenBalance = parseFloat(
@@ -432,15 +436,16 @@ const processReceiveWallet = async (
         )
       );
       ctx.scene.session.tokenBalance = tokenBalance;
-      await reply(
-        ctx,
-        Format.fmt`${emojs.balance} Balance: ${Format.code(tokenBalance)}`
-      );
+      await editMessage(ctx, Format.fmt`${emojs.balance} Balance: ${Format.code(tokenBalance)}`, msgLoadingBalance)
+      // await reply(
+      //   ctx,
+      //   Format.fmt`${emojs.balance} Balance: ${Format.code(tokenBalance)}`
+      // );
       await reply(ctx, `Please enter amount to transfer`, cancelBtn);
       return true;
     }
   } else {
-    await reply(ctx, `${emojs.error} Insufficient balance`);
+    await editMessage(ctx, `${emojs.balance} Balance: Insufficient ${emojs.error}`, msgLoadingBalance)
     return false;
   }
 };

@@ -18,10 +18,11 @@ import { SupportedChain, supportedChains } from "../types";
 import { User, Token as TokenModel, Wallet, WalletWhiteList } from "../models";
 import { emojs, getExplorer } from "../libs/constants2";
 import { FmtString } from "telegraf/typings/format";
-import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
+import { ExtraEditMessageText, ExtraReplyMessage } from "telegraf/typings/telegram-types";
 import _, { chain } from "lodash";
 import erc20Abi from "../tokenABI/erc20.json";
 import axios from "axios";
+import { Message } from "telegraf/typings/core/types/typegram";
 
 const getETHPrice = async () => {
   const resp = await axios
@@ -54,6 +55,17 @@ export const reply = async (
   return ctx.reply(text, extra).catch((e: any) => {
     console.log(e);
   });
+};
+
+export const editMessage = async (
+  ctx: Context,
+  text: string | FmtString,
+  msg: Message.TextMessage,
+  extra?: ExtraEditMessageText
+) => {
+  return ctx.telegram.editMessageText(msg.chat.id, msg.message_id, undefined, text, extra).catch((e: any) => {
+    console.log(e)
+  })
 };
 
 export const getCurrentMessageId = (ctx: Context): number | null => {
@@ -503,8 +515,7 @@ export const selectWalletBtn = (wallets: Wallet[]) => {
   for (let i = 0; i < wallets.length; i++) {
     btns.push([
       Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${
-          wallets[i].wallet
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
         }`,
         `select_wallet_${wallets[i].wallet}`
       ),
@@ -519,8 +530,7 @@ export const selectWalletIdBtn = (wallets: Wallet[]) => {
   for (let i = 0; i < wallets.length; i++) {
     btns.push([
       Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${
-          wallets[i].wallet
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
         }`,
         `select_wallet_${wallets[i].id}`
       ),
@@ -674,8 +684,7 @@ export const selectWalletWLBtn = (wallets: WalletWhiteList[]) => {
   for (let i = 0; i < wallets.length; i++) {
     btns.push([
       Markup.button.callback(
-        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${
-          wallets[i].wallet
+        `${emojs.address} ${wallets[i].name.toUpperCase()} - ${wallets[i].wallet
         }`,
         `swlw_${wallets[i].wallet}`
       ),
@@ -774,27 +783,26 @@ export const selectTokenBtn = (chain: SupportedChain) => {
   if (chainId) {
     const weth = getWETHAddr(chainId)
     if (weth) {
-      tokens.push({name: 'WETH', address: weth})
+      tokens.push({ name: 'WETH', address: weth })
     }
     const usdt = getUSDTAddr(chainId)
     if (usdt) {
-      tokens.push({name: 'USDT', address: usdt})
+      tokens.push({ name: 'USDT', address: usdt })
     }
     const usdc = getUSDCAddr(chainId)
     if (usdc) {
-      tokens.push({name: 'USDC', address: usdc})
+      tokens.push({ name: 'USDC', address: usdc })
     }
     const dai = getDAIAddr(chainId)
     if (dai) {
-      tokens.push({name: 'DAI', address: dai})
+      tokens.push({ name: 'DAI', address: dai })
     }
   }
   if (tokens.length > 0) {
     for (let i = 0; i < tokens.length; i++) {
       btns.push([
         Markup.button.callback(
-          `${emojs.address} ${tokens[i].name} - ${
-            tokens[i].address
+          `${emojs.address} ${tokens[i].name} - ${tokens[i].address
           }`,
           `stkn_${tokens[i].address}`
         ),
