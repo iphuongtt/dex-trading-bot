@@ -23,6 +23,7 @@ import _, { chain } from "lodash";
 import erc20Abi from "../tokenABI/erc20.json";
 import axios from "axios";
 import { Message } from "telegraf/typings/core/types/typegram";
+import { OrderActions, OrderActionsName } from "./orders/types";
 
 const getETHPrice = async () => {
   const resp = await axios
@@ -823,4 +824,22 @@ export const selectWalletWLBtn = (wallets: WalletWhiteList[], selected?: string)
     btns.push([Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]);
   }
   return Markup.inlineKeyboard(btns);
+};
+
+export const selectOrderTypeBtn = (pair: string) => {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback(
+        `${emojs.buy} ${OrderActionsName.select_buy_order} ${pair}`,
+        OrderActions.select_buy_order
+      ),
+    ],
+    [
+      Markup.button.callback(
+        `${emojs.sell} ${OrderActionsName.select_sell_order} ${pair}`,
+        OrderActions.select_sell_order
+      ),
+    ],
+    [Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]
+  ]);
 };

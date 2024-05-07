@@ -1,5 +1,5 @@
 export * from './command'
-export * from './scene'
+export * from './scenes'
 export * from './schema'
 export * from './session'
 export * from './setup'

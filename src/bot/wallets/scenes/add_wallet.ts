@@ -1,10 +1,11 @@
-import { Wallet, isAddress } from "ethers-new";
+import { isAddress } from "ethers-new";
 import { create, getDoc, getServerTimeStamp, isExists } from "../../../libs/firestore";
 import { deleteLastMessage, reply } from "../../util";
 import { removeUndefined } from "../../../libs";
 import { Format, Scenes } from "telegraf";
 import { BotContext, cancelBtn, cancelBtnStep1 } from "../../context";
 import { leaveSceneWalletStep0, leaveSceneWalletStep1 } from "../command";
+import { Wallet } from "../../../models";
 
 export const addWalletWizard = new Scenes.WizardScene<BotContext>(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene
