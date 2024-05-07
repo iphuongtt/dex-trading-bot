@@ -24,6 +24,7 @@ import erc20Abi from "../tokenABI/erc20.json";
 import axios from "axios";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { OrderActions, OrderActionsName } from "./orders/types";
+import { WizardScene } from "telegraf/typings/scenes";
 
 const getETHPrice = async () => {
   const resp = await axios
@@ -843,3 +844,11 @@ export const selectOrderTypeBtn = (pair: string) => {
     [Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]
   ]);
 };
+
+
+export const setupCommonAction = (scene: WizardScene<BotContext>) => {
+  scene.action("no_action", async (ctx) => {
+    return ctx.wizard.back()
+  })
+  return scene
+}

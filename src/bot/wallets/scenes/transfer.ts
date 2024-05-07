@@ -30,10 +30,12 @@ import {
   selectTokenBtn,
   transferERC20,
   editMessage,
+  setupCommonAction,
 } from "../../util";
 import { emojs } from "../../../libs/constants2";
 import _ from "lodash";
 import JSBI from "jsbi";
+import { CommonWizard } from "../../utils";
 /**
  * 1. Select chain
  * 2: Select wallet
@@ -42,7 +44,7 @@ import JSBI from "jsbi";
  * 5: Input amount to transfer
  * 6: Confirm transfer
  */
-export const transferWizard = new Scenes.WizardScene<BotContext>(
+export const transferWizard = new CommonWizard(
   "transferWizard",
   //Step 0
   async (ctx) => {
@@ -168,6 +170,7 @@ export const transferWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
+setupCommonAction(transferWizard)
 
 transferWizard.action(/select_chain_[a-z_]+/, async (ctx) => {
   const _math = ctx.match[0];
@@ -310,15 +313,6 @@ transferWizard.action("confirm", async (ctx) => {
   }
 });
 
-transferWizard.action("not_confirm", async (ctx) => {
-  await reply(ctx, "Cancel");
-  return ctx.scene.leave();
-});
-
-transferWizard.action("cancel", async (ctx) => {
-  await reply(ctx, "Cancel");
-  return ctx.scene.leave();
-});
 
 transferWizard.action("add_receive_to_whitelist", async (ctx) => {
   return ctx.scene.enter("addWhiteListWalletWizard", {
