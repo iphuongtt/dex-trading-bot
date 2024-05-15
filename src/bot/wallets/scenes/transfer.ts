@@ -1,4 +1,4 @@
-import { Format, Markup, Scenes } from "telegraf";
+import { Format, Markup } from "telegraf";
 import {
   BotContext,
   cancelBtn,
@@ -16,8 +16,6 @@ import {
 } from "../../../libs";
 import {
   deleteLastMessage,
-  deleteLastMessages,
-  deleteMessage,
   estimateGasTransfer,
   genChainLink,
   getBalance,
@@ -30,7 +28,6 @@ import {
   selectTokenBtn,
   transferERC20,
   editMessage,
-  setupCommonAction,
 } from "../../util";
 import { emojs } from "../../../libs/constants2";
 import _ from "lodash";
@@ -169,8 +166,6 @@ export const transferWizard = new CommonWizard(
     }
   }
 );
-
-setupCommonAction(transferWizard)
 
 transferWizard.action(/select_chain_[a-z_]+/, async (ctx) => {
   const _math = ctx.match[0];
@@ -320,10 +315,6 @@ transferWizard.action("add_receive_to_whitelist", async (ctx) => {
   });
 });
 
-transferWizard.action("try_again", async (ctx) => {
-  await deleteLastMessages(ctx, 2)
-  return ctx.wizard.selectStep(ctx.wizard.cursor - 1)
-});
 
 const processTransferTokenAddr = async (
   ctx: BotContext,

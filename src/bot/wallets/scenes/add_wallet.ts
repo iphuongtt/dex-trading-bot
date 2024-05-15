@@ -2,12 +2,13 @@ import { isAddress } from "ethers-new";
 import { create, getDoc, getServerTimeStamp, isExists } from "../../../libs/firestore";
 import { deleteLastMessage, reply } from "../../util";
 import { removeUndefined } from "../../../libs";
-import { Format, Scenes } from "telegraf";
-import { BotContext, cancelBtn, cancelBtnStep1 } from "../../context";
-import { leaveSceneWalletStep0, leaveSceneWalletStep1 } from "../command";
+import { Format } from "telegraf";
+import { cancelBtn, cancelBtnStep1 } from "../../context";
+import { leaveSceneWalletStep1 } from "../command";
 import { Wallet } from "../../../models";
+import { CommonWizard } from "../../utils";
 
-export const addWalletWizard = new Scenes.WizardScene<BotContext>(
+export const addWalletWizard = new CommonWizard(
   "addWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -99,5 +100,4 @@ export const addWalletWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
-addWalletWizard.action("leave", leaveSceneWalletStep0);
 addWalletWizard.action("leave_step_1", leaveSceneWalletStep1);

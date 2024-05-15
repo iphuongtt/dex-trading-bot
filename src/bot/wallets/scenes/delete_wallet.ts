@@ -1,10 +1,11 @@
-import { Format, Scenes } from "telegraf";
-import { deleteWallet, leaveSceneWalletStep0, leaveSceneWalletStep2 } from "../command";
-import { BotContext, cancelBtn, yesOrNoInlineKeyboard } from "../../context";
+import { Format } from "telegraf";
+import { deleteWallet } from "../command";
+import { cancelBtn, yesOrNoInlineKeyboard } from "../../context";
 import { deleteLastMessage, reply } from "../../util";
 import { isExists } from "../../../libs/firestore";
+import { CommonWizard } from "../../utils";
 
-const deleteWalletWizard = new Scenes.WizardScene<BotContext>(
+const deleteWalletWizard = new CommonWizard(
   "deleteWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -33,7 +34,4 @@ const deleteWalletWizard = new Scenes.WizardScene<BotContext>(
     return ctx.wizard.next();
   }
 );
-
-deleteWalletWizard.action("leave", leaveSceneWalletStep0);
 deleteWalletWizard.action("yes", deleteWallet);
-deleteWalletWizard.action("no", leaveSceneWalletStep2);

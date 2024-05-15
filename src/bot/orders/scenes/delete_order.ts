@@ -1,11 +1,12 @@
-import { Format, Scenes } from "telegraf";
-import { BotContext, yesOrNoInlineKeyboard } from "../../context";
-import { cancleAndClose, deleteOrder } from "../command";
+import { Format } from "telegraf";
+import { yesOrNoInlineKeyboard } from "../../context";
+import { deleteOrder } from "../command";
 import { deleteLastMessage, reply } from "../../util";
 import { getDoc } from "../../../libs/firestore";
 import _ from "lodash";
+import { CommonWizard } from "../../utils";
 
-export const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
+export const deleteOrderWizard = new CommonWizard(
   "deleteOrderWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx)
@@ -27,7 +28,4 @@ export const deleteOrderWizard = new Scenes.WizardScene<BotContext>(
     }
   }
 );
-
-deleteOrderWizard.action("leave", cancleAndClose);
 deleteOrderWizard.action("yes", deleteOrder);
-deleteOrderWizard.action("no", cancleAndClose);

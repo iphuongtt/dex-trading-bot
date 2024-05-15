@@ -1,12 +1,12 @@
-import { Format, Scenes } from "telegraf";
-import { BotContext, cancelBtn } from "../../context";
+import { Format } from "telegraf";
+import { cancelBtn } from "../../context";
 import { deleteLastMessage, reply } from "../../util";
 import { isNumeric } from "../../../libs";
 import { getDoc, updateDoc } from "../../../libs/firestore";
-import { cancleAndClose } from "../command";
 import _ from "lodash";
+import { CommonWizard } from "../../utils";
 
-export const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
+export const editOrderAmountWizard = new CommonWizard(
   "editOrderAmountWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx)
@@ -54,6 +54,3 @@ export const editOrderAmountWizard = new Scenes.WizardScene<BotContext>(
     return ctx.scene.leave();
   }
 );
-
-
-editOrderAmountWizard.action("leave", cancleAndClose);

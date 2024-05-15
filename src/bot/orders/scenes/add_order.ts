@@ -1,15 +1,15 @@
-import { Format, Scenes } from "telegraf";
-import { BotContext, cancelBtn } from "../../context";
+import { Format } from "telegraf";
+import { cancelBtn } from "../../context";
 import { deleteLastMessage, isVIP, reply } from "../../util";
 import { isValidAddOrder } from "../schema";
 import { create, getDoc, getServerTimeStamp, incrementNumericValue } from "../../../libs/firestore";
 import { emojs } from "../../../libs/constants2";
 import { Order } from "../../../models";
 import { removeUndefined } from "../../../libs";
-import { leaveSceneOrderStep0 } from "../command";
 import _ from "lodash";
+import { CommonWizard } from "../../utils";
 
-export const addOrderWizard = new Scenes.WizardScene<BotContext>(
+export const addOrderWizard = new CommonWizard(
   "addOrderWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -87,5 +87,3 @@ export const addOrderWizard = new Scenes.WizardScene<BotContext>(
     }
   }
 );
-
-addOrderWizard.action("leave", leaveSceneOrderStep0);

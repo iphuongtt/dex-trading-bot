@@ -1,12 +1,12 @@
-import { Format, Markup, Scenes } from "telegraf";
-import { BotContext } from "../../context";
+import { Format, Markup } from "telegraf";
 import { deleteLastMessage, reply } from "../../util";
-import { activeOrder, cancleAndClose, deActiveOrder } from "../command";
+import { activeOrder, deActiveOrder } from "../command";
 import { getDoc } from "../../../libs/firestore";
 import _ from "lodash";
 import { emojs } from "../../../libs/constants2";
+import { CommonWizard } from "../../utils";
 
-export const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
+export const editOrderStatusWizard = new CommonWizard(
   "editOrderStatusWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx)
@@ -37,14 +37,5 @@ export const editOrderStatusWizard = new Scenes.WizardScene<BotContext>(
   }
 );
 
-
-editOrderStatusWizard.action("leave", cancleAndClose);
-
-
-
 editOrderStatusWizard.action("active_order", activeOrder)
 editOrderStatusWizard.action("deactive_order", deActiveOrder)
-editOrderStatusWizard.action("leave", async (ctx: BotContext) => {
-  await deleteLastMessage(ctx)
-  return ctx.scene.leave()
-})

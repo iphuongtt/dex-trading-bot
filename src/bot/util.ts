@@ -844,11 +844,3 @@ export const selectOrderTypeBtn = (pair: string) => {
     [Markup.button.callback(`${emojs.cancel} Cancel`, 'cancel')]
   ]);
 };
-
-
-export const setupCommonAction = (scene: WizardScene<BotContext>) => {
-  scene.action("no_action", async (ctx) => {
-    return ctx.wizard.back()
-  })
-  return scene
-}

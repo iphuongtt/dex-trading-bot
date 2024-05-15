@@ -1,11 +1,12 @@
-import { Format, Scenes } from "telegraf";
-import { BotContext, yesOrNoInlineKeyboard } from "../../context";
+import { Format } from "telegraf";
+import { yesOrNoInlineKeyboard } from "../../context";
 import { deleteLastMessage, reply } from "../../util";
 import _ from "lodash";
 import { getDoc } from "../../../libs/firestore";
 import { deleteWLWallet } from "../command";
+import { CommonWizard } from "../../utils";
 
-export const deleteWLWalletWizard = new Scenes.WizardScene<BotContext>(
+export const deleteWLWalletWizard = new CommonWizard(
   "deleteWLWalletWizard", // first argument is Scene_ID, same as for BaseScene
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -41,7 +42,3 @@ export const deleteWLWalletWizard = new Scenes.WizardScene<BotContext>(
 );
 
 deleteWLWalletWizard.action("yes", deleteWLWallet);
-deleteWLWalletWizard.action("no", async (ctx) => {
-  await deleteLastMessage(ctx);
-  return ctx.scene.leave();
-});

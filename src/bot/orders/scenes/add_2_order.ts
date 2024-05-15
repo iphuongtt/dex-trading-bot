@@ -1,4 +1,4 @@
-import { Format, Markup, Scenes } from "telegraf";
+import { Format, Markup } from "telegraf";
 import { BotContext, yesOrNoInlineKeyboard } from "../../context";
 import { deleteLastMessage, deleteLastMessages, deleteMessage, genAddressLink, genChainLink, genTokenLink, getChain, getRoute, getTokenInfo, reply } from "../../util";
 import { emojs } from "../../../libs/constants2";
@@ -9,8 +9,9 @@ import _ from "lodash";
 import { getDoc, getListDocs } from "../../../libs/firestore";
 import { OrderActions } from "../types";
 import { confirmAddOrder } from "../command";
+import { CommonWizard } from "../../utils";
 
-export const add2OrderWizard = new Scenes.WizardScene<BotContext>(
+export const add2OrderWizard = new CommonWizard(
   "add2OrderWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -301,14 +302,3 @@ add2OrderWizard.action(
 );
 
 add2OrderWizard.action("yes", confirmAddOrder);
-add2OrderWizard.action("no", async (ctx: BotContext) => {
-  ctx.scene.reset();
-  await reply(ctx, "Canceled the creation of the order.");
-  ctx.scene.leave();
-});
-
-add2OrderWizard.action("cancel", async (ctx: BotContext) => {
-  ctx.scene.reset();
-  await reply(ctx, "Canceled the creation of the order.");
-  ctx.scene.leave();
-});

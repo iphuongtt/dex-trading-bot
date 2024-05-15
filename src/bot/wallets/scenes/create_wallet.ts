@@ -1,14 +1,14 @@
-import { Format, Scenes } from "telegraf";
-import { BotContext, cancelBtn } from "../../context";
+import { Format } from "telegraf";
+import { cancelBtn } from "../../context";
 import { deleteLastMessage, encrypt, isVIP, reply } from "../../util";
 import { create, getDoc, getServerTimeStamp, incrementNumericValue, isExists } from "../../../libs/firestore";
 import { ethers } from "ethers-new";
 import { Wallet } from "../../../models";
 import { removeUndefined } from "../../../libs";
 import { emojs } from "../../../libs/constants2";
-import { leaveSceneWalletStep0 } from "../command";
+import { CommonWizard } from "../../utils";
 
-export const createWalletWizard = new Scenes.WizardScene<BotContext>(
+export const createWalletWizard = new CommonWizard(
   "createWalletWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);
@@ -116,5 +116,3 @@ export const createWalletWizard = new Scenes.WizardScene<BotContext>(
     return ctx.scene.leave();
   }
 );
-
-createWalletWizard.action("leave", leaveSceneWalletStep0);

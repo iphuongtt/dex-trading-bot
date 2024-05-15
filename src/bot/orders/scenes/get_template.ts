@@ -1,9 +1,9 @@
-import { Markup, Scenes } from "telegraf";
-import { BotContext } from "../../context";
+import { Markup } from "telegraf";
 import { deleteLastMessage, reply } from "../../util";
 import { emojs } from "../../../libs/constants2";
+import { CommonWizard } from "../../utils";
 
-export const getTemplateWizard = new Scenes.WizardScene<BotContext>(
+export const getTemplateWizard = new CommonWizard(
   "getTemplateWizard",
   async (ctx) => {
     await deleteLastMessage(ctx);

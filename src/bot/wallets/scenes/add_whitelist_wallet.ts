@@ -1,4 +1,4 @@
-import { Format, Scenes } from "telegraf";
+import { Format } from "telegraf";
 import { deleteLastMessage, getUserByTeleId, reply } from "../../util";
 import { BotContext, cancelBtn, cancelBtnStep1 } from "../../context";
 import { isAddress } from "ethers-new";
@@ -6,8 +6,9 @@ import { create, getServerTimeStamp, isExists } from "../../../libs/firestore";
 import { WalletWhiteList } from "../../../models";
 import { removeUndefined } from "../../../libs";
 import _ from "lodash";
+import { CommonWizard } from "../../utils";
 
-export const addWhiteListWalletWizard = new Scenes.WizardScene<BotContext>(
+export const addWhiteListWalletWizard = new CommonWizard(
   "addWhiteListWalletWizard", // first argument is Scene_ID, same as for BaseScene
   //Step 0: Getting wallet address or require user input wallet
   async (ctx) => {
